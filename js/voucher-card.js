@@ -78,11 +78,11 @@ export function renderVoucherCard(item) {
 
   const badges = [];
   const vendorName = capitalize(resolveVendor(item) || "Uncategorized");
-  badges.push(`<span class="inline-flex items-center px-3 py-0.5 text-xs font-medium bg-[var(--badge-vendor-bg)] text-[var(--badge-vendor-text)]">${escapeHtml(vendorName)}</span>`);
+  badges.push(`<span class="badge badge-vendor">${escapeHtml(vendorName)}</span>`);
   if (ai?.discount) {
-    badges.push(`<span class="inline-flex items-center px-3 py-0.5 text-xs font-medium bg-[var(--badge-discount-bg)] text-[var(--badge-discount-text)]">${escapeHtml(ai.discount)}</span>`);
+    badges.push(`<span class="badge badge-discount">${escapeHtml(ai.discount)}</span>`);
   } else if (ai?.is_voucher) {
-    badges.push(`<span class="inline-flex items-center px-3 py-0.5 text-xs font-medium bg-[var(--badge-voucher-bg)] text-[var(--badge-voucher-text)]">Voucher</span>`);
+    badges.push(`<span class="badge badge-voucher">Voucher</span>`);
   }
 
   const summary = generateSummary(item);
@@ -95,14 +95,14 @@ export function renderVoucherCard(item) {
   if (published_at) metaRows.push(`\u{1F4F0} ${formatDate(published_at)}`);
 
   return `
-    <div class="bg-[var(--bg-card)] border-2 border-[var(--border)] p-8 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]">
-      ${badges.length ? `<div class="flex flex-wrap gap-1.5">${badges.join("")}</div>` : ""}
-      <h3 class="text-lg font-semibold text-[var(--text-primary)] leading-snug font-['Cormorant_Garamond',Georgia,serif]">${escapeHtml(title || "Untitled")}</h3>
-      <p class="text-sm text-[var(--text-secondary)] leading-relaxed">${escapeHtml(summary)}</p>
-      ${tags.length ? `<div class="flex flex-wrap gap-1">${tags.map(t => `<span class="inline-flex items-center px-3 py-0.5 text-xs font-medium bg-[var(--tag-bg)] text-[var(--tag-text)]">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-      ${metaRows.length ? `<div class="flex flex-col gap-0.5 text-xs text-[var(--text-muted)]">${metaRows.map(r => `<p>${r}</p>`).join("")}</div>` : ""}
-      <div class="mt-auto pt-2">
-        <a href="${escapeHtml(url || "#")}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-[var(--btn-text)] bg-[var(--btn-bg)] border-2 border-[var(--btn-border)] hover:bg-[var(--btn-hover-bg)] hover:border-[var(--btn-hover-border)] transition-colors duration-150">
+    <div class="card">
+      ${badges.length ? `<div class="badge-group">${badges.join("")}</div>` : ""}
+      <h3 class="card-title">${escapeHtml(title || "Untitled")}</h3>
+      <p class="card-summary">${escapeHtml(summary)}</p>
+      ${tags.length ? `<div class="tag-group">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+      ${metaRows.length ? `<div class="card-meta">${metaRows.map(r => `<p>${r}</p>`).join("")}</div>` : ""}
+      <div class="card-btn-wrapper">
+        <a href="${escapeHtml(url || "#")}" target="_blank" rel="noopener noreferrer" class="card-btn">
           View Details
         </a>
       </div>
