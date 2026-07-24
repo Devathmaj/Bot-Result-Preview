@@ -10,19 +10,12 @@ const cacheHeaders = {
 };
 
 /* ── Rate limiting ──
- * Per-IP counter stored in a Map.  Per-isolate only; generous limit of 30
+ * Per-IP counter stored in a Map. Per-isolate only; generous limit of 30
  * requests per minute keeps this acceptable for a preview site.
- * Stale entries purged every 60 seconds. */
+ * Stale entries are purged lazily during each check. */
 const WINDOW_MS = 60_000;
 const MAX_RPM = 30;
 const ipCounters = new Map();
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of ipCounters) {
-    if (now - entry.start > WINDOW_MS) ipCounters.delete(ip);
-  }
-}, WINDOW_MS);
 
 function getClientIP(request) {
   return request.headers.get("CF-Connecting-IP") || "unknown";
@@ -30,8 +23,12 @@ function getClientIP(request) {
 
 function checkRateLimit(ip) {
   const now = Date.now();
+  // Lazy purge of all entries older than the window
+  for (const [key, entry] of ipCounters) {
+    if (now - entry.start > WINDOW_MS) ipCounters.delete(key);
+  }
   let entry = ipCounters.get(ip);
-  if (!entry || now - entry.start > WINDOW_MS) {
+  if (!entry) {
     entry = { start: now, count: 0 };
     ipCounters.set(ip, entry);
   }
