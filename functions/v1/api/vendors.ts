@@ -54,11 +54,17 @@ export async function onRequestGet({ request, env }) {
   // Check edge cache before contacting Supabase
   const cacheKey = new Request(request.url, request);
   const cached = await caches.default.match(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    console.log("Cache HIT");
+    const headers = new Headers(cached.headers);
+    headers.set("X-Worker-Cache", "HIT");
+    return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers });
+  }
 
   try {
     const upstreamUrl = env.SUPABASE_FUNCTION_URL + "?mode=vendors";
 
+    console.log("Cache MISS - calling Supabase");
     const response = await fetch(upstreamUrl, {
       method: "GET",
       headers: {
@@ -80,7 +86,7 @@ export async function onRequestGet({ request, env }) {
     const body = JSON.stringify(data);
     const cacheable = new Response(body, {
       status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders, ...cacheHeaders },
+      headers: { "Content-Type": "application/json", "X-Worker-Cache": "MISS", ...corsHeaders, ...cacheHeaders },
     });
 
     // Store in edge cache before returning
