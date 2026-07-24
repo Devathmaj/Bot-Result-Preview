@@ -1,12 +1,13 @@
+const CACHE_TTL = 900; // 15 minutes
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-/* Edge-cache successful 200 responses for 15 minutes. */
 const cacheHeaders = {
-  "Cache-Control": "public, s-maxage=900, max-age=0, must-revalidate",
+  "Cache-Control": `public, s-maxage=${CACHE_TTL}, max-age=0, must-revalidate`,
 };
 
 /* ── Rate limiting ──
@@ -24,7 +25,6 @@ function getClientIP(request) {
 
 function checkRateLimit(ip) {
   const now = Date.now();
-  // Lazy purge of all entries older than the window
   for (const [key, entry] of ipCounters) {
     if (now - entry.start > WINDOW_MS) ipCounters.delete(key);
   }
@@ -52,6 +52,11 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
+  // Check edge cache before contacting Supabase
+  const cacheKey = new Request(request.url, request);
+  const cached = await caches.default.match(cacheKey);
+  if (cached) return cached;
+
   try {
     const requestUrl = new URL(request.url);
     const upstreamUrl = env.SUPABASE_FUNCTION_URL + requestUrl.search;
@@ -74,10 +79,15 @@ export async function onRequestGet({ request, env }) {
       });
     }
 
-    return new Response(JSON.stringify(data), {
+    const body = JSON.stringify(data);
+    const cacheable = new Response(body, {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders, ...cacheHeaders },
     });
+
+    // Store in edge cache before returning
+    await caches.default.put(cacheKey, cacheable.clone());
+    return cacheable;
   } catch (err) {
     return new Response(JSON.stringify({ error: "Worker error", message: err.message }), {
       status: 500,
