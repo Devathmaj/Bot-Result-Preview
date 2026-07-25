@@ -7,11 +7,13 @@ import { renderAboutPage, renderPrivacyPage, renderTermsPage, renderDisclaimerPa
 
 let events = [];
 let currentPage = 1;
+let pageWindowStart = 1;
 let nextCursor = null;
 let isLoadingMore = false;
 let isFetching = false;
 
 const CLIENT_SIZE = 6;
+const WINDOW_SIZE = 5;
 const queryCache = new Map();
 
 function cacheKey() {
@@ -104,9 +106,11 @@ function renderApp(newEvents, nc, reset) {
   if (reset) {
     events = newEvents;
     currentPage = 1;
+    pageWindowStart = 1;
   } else {
     events = events.concat(newEvents);
     currentPage = Math.ceil(events.length / CLIENT_SIZE);
+    pageWindowStart = Math.floor((currentPage - 1) / WINDOW_SIZE) * WINDOW_SIZE + 1;
   }
 
   nextCursor = nc;
@@ -240,23 +244,64 @@ function renderPagination() {
   prevBtn.textContent = "← Previous";
   prevBtn.disabled = currentPage === 1;
   prevBtn.addEventListener("click", () => {
-    if (currentPage > 1) { currentPage--; renderPage(); }
+    if (currentPage > 1) {
+      currentPage--;
+      if (currentPage < pageWindowStart) {
+        pageWindowStart = Math.max(1, pageWindowStart - WINDOW_SIZE);
+      }
+      renderPage();
+    }
   });
   el.appendChild(prevBtn);
 
-  for (let i = 1; i <= clientTotal; i++) {
+  const firstBtn = document.createElement("button");
+  firstBtn.className = "page-btn";
+  firstBtn.textContent = "<<";
+  firstBtn.disabled = currentPage === 1;
+  firstBtn.addEventListener("click", () => {
+    currentPage = 1;
+    pageWindowStart = 1;
+    renderPage();
+  });
+  el.appendChild(firstBtn);
+
+  const windowEnd = Math.min(pageWindowStart + WINDOW_SIZE - 1, clientTotal);
+  for (let i = pageWindowStart; i <= windowEnd; i++) {
     const btn = document.createElement("button");
     btn.className = `page-btn${i === currentPage ? " active" : ""}`;
     btn.textContent = i;
-    btn.addEventListener("click", () => { currentPage = i; renderPage(); });
+    btn.addEventListener("click", () => {
+      currentPage = i;
+      if (i === windowEnd && windowEnd < clientTotal) {
+        pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
+      }
+      renderPage();
+    });
     el.appendChild(btn);
   }
+
+  const lastBtn = document.createElement("button");
+  lastBtn.className = "page-btn";
+  lastBtn.textContent = ">>";
+  lastBtn.disabled = pageWindowStart + WINDOW_SIZE > clientTotal;
+  lastBtn.addEventListener("click", () => {
+    pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
+    currentPage = Math.min(pageWindowStart + WINDOW_SIZE - 1, clientTotal);
+    renderPage();
+  });
+  el.appendChild(lastBtn);
 
   const nextBtn = document.createElement("button");
   nextBtn.className = "page-btn";
   nextBtn.textContent = "Next →";
   if (currentPage < clientTotal) {
-    nextBtn.addEventListener("click", () => { currentPage++; renderPage(); });
+    nextBtn.addEventListener("click", () => {
+      currentPage++;
+      if (currentPage > pageWindowStart + WINDOW_SIZE - 1) {
+        pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
+      }
+      renderPage();
+    });
   } else if (hasMore) {
     nextBtn.addEventListener("click", loadMore);
     nextBtn.id = "load-more-btn";

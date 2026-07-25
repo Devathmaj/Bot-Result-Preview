@@ -1,0 +1,6 @@
+# VoucherBot — robots.txt
+# https://voucherbot-preview.pages.dev/
+
+User-agent: *
+Allow: /
+Crawl-delay: 10
