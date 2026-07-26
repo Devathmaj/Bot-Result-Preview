@@ -78,7 +78,7 @@ export function renderAboutPage() {
         "Voucher Tracker is an open-source project. The complete source code is available on GitHub, where you can explore how it works, contribute improvements, report issues, or set up your own instance.",
         {
           type: "html",
-          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/Voucher-Tracker" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/Voucher-Tracker</a></p>`,
+          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/VoucherBot" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/VoucherBot</a></p>`,
         },
         "If you find this project useful, consider starring the repository on GitHub, sharing it with others who might benefit, or contributing to its development.",
       ],
@@ -141,7 +141,7 @@ export function renderPrivacyPage() {
         "If you have questions about this privacy policy, please open an issue on the project's GitHub repository.",
         {
           type: "html",
-          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/Voucher-Tracker" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/Voucher-Tracker</a></p>`,
+          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/VoucherBot" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/VoucherBot</a></p>`,
         },
       ],
     },
@@ -214,7 +214,7 @@ export function renderTermsPage() {
         "For questions regarding these Terms of Use, please visit the project's GitHub repository.",
         {
           type: "html",
-          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/Voucher-Tracker" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/Voucher-Tracker</a></p>`,
+          html: `<p class="legal-github-link"><a href="https://github.com/Devathmaj/VoucherBot" target="_blank" rel="noopener noreferrer">https://github.com/Devathmaj/VoucherBot</a></p>`,
         },
       ],
     },
@@ -276,7 +276,7 @@ export function renderFooter() {
       <span class="footer-sep">&middot;</span>
       <a href="#disclaimer">Disclaimer</a>
       <span class="footer-sep">&middot;</span>
-      <a href="https://github.com/Devathmaj/Voucher-Tracker" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/Devathmaj/VoucherBot" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
     <p class="footer-disclaimer">
       Voucher Tracker is an independent, open-source aggregator of publicly available certification promotions. We are not affiliated with or endorsed by the organizations whose offers are listed. All trademarks and promotions remain the property of their respective owners.

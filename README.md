@@ -1,6 +1,6 @@
 # Voucher Tracker — Preview
 
-This repository contains the **preview frontend** for [Voucher Bot](https://github.com/Devathmaj/Voucher-Tracker) — an open-source project that aggregates publicly available certification vouchers, promotional offers, discounts, and learning opportunities from various vendors.
+This repository contains the **preview frontend** for [Voucher Bot](https://github.com/Devathmaj/VoucherBot) — an open-source project that aggregates publicly available certification vouchers, promotional offers, discounts, and learning opportunities from various vendors.
 
 > **🔗 Live preview:** [https://voucherbot-preview.pages.dev/](https://voucherbot-preview.pages.dev/)
 
@@ -23,7 +23,7 @@ The real star of the show is **Voucher Bot** itself — the automated scanner th
 
 To explore the full project, view the source code, contribute, report issues, or self-host your own instance:
 
-> **[https://github.com/Devathmaj/Voucher-Tracker](https://github.com/Devathmaj/Voucher-Tracker)**
+> **[https://github.com/Devathmaj/VoucherBot](https://github.com/Devathmaj/VoucherBot)**
 
 ## ⚠️ Disclaimer
 
