@@ -4,3 +4,5 @@
 User-agent: *
 Allow: /
 Crawl-delay: 10
+
+Sitemap: https://voucherbot-preview.pages.dev/sitemap.xml
