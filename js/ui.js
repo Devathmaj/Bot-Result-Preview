@@ -16,6 +16,15 @@ const CLIENT_SIZE = 6;
 const WINDOW_SIZE = 5;
 const queryCache = new Map();
 
+function sortByCreatedAt(list) {
+  const dir = getFilters().sort === "oldest" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    const aTime = a?.created_at ? Date.parse(a.created_at) : 0;
+    const bTime = b?.created_at ? Date.parse(b.created_at) : 0;
+    return (aTime - bTime) * dir;
+  });
+}
+
 function cacheKey() {
   const f = getFilters();
   return `${f.search}|${f.vendor}|${f.sort}`;
@@ -104,11 +113,11 @@ export function renderError(message, retryFn) {
 function renderApp(newEvents, nc, reset) {
   showWelcomeModal();
   if (reset) {
-    events = newEvents;
+    events = sortByCreatedAt(newEvents);
     currentPage = 1;
     pageWindowStart = 1;
   } else {
-    events = events.concat(newEvents);
+    events = sortByCreatedAt(events.concat(newEvents));
     currentPage = Math.ceil(events.length / CLIENT_SIZE);
     pageWindowStart = Math.floor((currentPage - 1) / WINDOW_SIZE) * WINDOW_SIZE + 1;
   }
@@ -367,7 +376,7 @@ async function loadMore() {
     const filters = getFilters();
     const { events: newEvents, nextCursor: nc } = await getEvents({ ...filters, cursor: nextCursor });
 
-    events = events.concat(newEvents);
+    events = sortByCreatedAt(events.concat(newEvents));
     nextCursor = nc;
     currentPage = Math.ceil(events.length / CLIENT_SIZE);
     saveCache();
