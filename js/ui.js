@@ -475,6 +475,7 @@ function renderLegalRoute(hash) {
 
   const app = document.getElementById("app");
   app.innerHTML = "";
+  window.scrollTo(0, 0);
 
   const header = createHeader();
   app.appendChild(header);
@@ -490,6 +491,7 @@ function navigate() {
   const hash = location.hash.replace("#", "");
   if (!hash || hash === "home") {
     fetchAndRender(true);
+    window.scrollTo(0, 0);
     return;
   }
   renderLegalRoute(hash);

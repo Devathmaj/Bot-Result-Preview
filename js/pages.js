@@ -84,7 +84,7 @@ export function renderAboutPage() {
       ],
     },
     {
-      heading: "Limitations &amp; False Positives",
+      heading: "Limitations & False Positives",
       items: [
         "Voucher Bot collects data by scanning publicly available pages across vendor websites. Because some pages do not publish a clear date and the bot does not always extract date information reliably, older promotions — including some that may have already expired — can still appear in the listings.",
         "The project uses automated AI classification to identify voucher and promotion content. This process is not perfect and may occasionally produce false positives, where non-voucher content is misidentified as a promotion. Similarly, valid promotions may occasionally be missed.",
