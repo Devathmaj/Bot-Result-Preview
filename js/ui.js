@@ -3,7 +3,21 @@ import { getEvents, getVendors } from "./api.js";
 import { setSearch, setVendor, setSort, getFilters, submitSearch, clearSearch } from "./app.js";
 import { showWelcomeModal } from "./welcome-modal.js";
 import { initTheme, toggleTheme, getCurrentTheme } from "./theme.js";
-import { renderAboutPage, renderPrivacyPage, renderTermsPage, renderDisclaimerPage, renderFooter } from "./pages.js";
+import {
+  renderAboutPage,
+  renderPrivacyPage,
+  renderTermsPage,
+  renderDisclaimerPage,
+  renderFooter,
+  renderNotificationsPage,
+  renderDiscordPrivacyPage,
+  renderDiscordTermsPage,
+  renderDiscordDisclaimerPage,
+  renderDiscordPermissionsPage,
+  renderTelegramPrivacyPage,
+  renderTelegramTermsPage,
+  renderTelegramDisclaimerPage,
+} from "./pages.js";
 
 let events = [];
 let currentPage = 1;
@@ -64,6 +78,23 @@ function createHeader() {
   return header;
 }
 
+/* ── Notification CTA ── */
+
+function createNotifyCta() {
+  const a = document.createElement("a");
+  a.className = "notify-cta";
+  a.href = "#notifications";
+  a.innerHTML = `
+    <span class="notify-cta-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+    <span class="notify-cta-text">
+      <span class="notify-cta-title">Set Up Notifications</span>
+      <span class="notify-cta-sub">New voucher alerts delivered to you on Discord or Telegram</span>
+    </span>
+    <span class="notify-cta-go" aria-hidden="true">&rarr;</span>
+  `;
+  return a;
+}
+
 /* ── Initial states ── */
 
 export function renderLoading() {
@@ -73,6 +104,8 @@ export function renderLoading() {
 
   const header = createHeader();
   app.appendChild(header);
+
+  app.appendChild(createNotifyCta());
 
   const grid = document.createElement("div");
   grid.className = "card-grid";
@@ -89,6 +122,11 @@ export function renderLoading() {
 export function renderError(message, retryFn) {
   const app = document.getElementById("app");
   app.innerHTML = "";
+
+  const header = createHeader();
+  app.appendChild(header);
+
+  app.appendChild(createNotifyCta());
 
   const banner = document.createElement("div");
   banner.className = "error-banner";
@@ -130,6 +168,8 @@ function renderApp(newEvents, nc, reset) {
 
   const header = createHeader();
   app.appendChild(header);
+
+  app.appendChild(createNotifyCta());
 
   const filters = renderFilters();
   app.appendChild(filters);
@@ -467,6 +507,14 @@ const PAGE_ROUTES = {
   privacy: renderPrivacyPage,
   terms: renderTermsPage,
   disclaimer: renderDisclaimerPage,
+  notifications: renderNotificationsPage,
+  "discord/privacy": renderDiscordPrivacyPage,
+  "discord/terms": renderDiscordTermsPage,
+  "discord/disclaimer": renderDiscordDisclaimerPage,
+  "discord/permissions": renderDiscordPermissionsPage,
+  "telegram/privacy": renderTelegramPrivacyPage,
+  "telegram/terms": renderTelegramTermsPage,
+  "telegram/disclaimer": renderTelegramDisclaimerPage,
 };
 
 function renderLegalRoute(hash) {
