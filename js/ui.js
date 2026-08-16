@@ -72,7 +72,7 @@ function createHeader() {
   header.className = "page-header";
   const heading = document.createElement("div");
   heading.className = "page-header-heading";
-  heading.innerHTML = '<h1>Vouchers &amp; Promotions</h1><p class="subtitle">Certification opportunities &mdash; curated</p>';
+  heading.innerHTML = '<h1><a href="#" class="header-home-link" aria-label="Back to home">Vouchers &amp; Promotions</a></h1><p class="subtitle">Certification opportunities &mdash; curated</p>';
   header.appendChild(heading);
   header.appendChild(createThemeToggle());
   return header;
