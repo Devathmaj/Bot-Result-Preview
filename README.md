@@ -4,6 +4,10 @@ This repository contains the **preview frontend** for [Voucher Bot](https://gith
 
 > **🔗 Live preview:** [https://voucherbot-preview.pages.dev/](https://voucherbot-preview.pages.dev/)
 
+## 🔔 Get Direct Notifications
+
+You can now receive notifications directly on **Telegram** or **Discord**. Head over to the [Set Up Notifications](https://voucherbot-preview.pages.dev/#notifications) page to get started — choose your platform, follow the quick setup steps, and new vouchers and offers are pushed straight to you.
+
 ## 🧠 What Is This?
 
 This is the **frontend website** that displays a selection of promotions collected by Voucher Bot. It's a demo of what the bot can do — browse, search, and filter certification deals all in one place.
