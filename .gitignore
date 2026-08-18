@@ -13,3 +13,4 @@ worker-site/
 .DS_Store
 Thumbs.db
 .dev.vars
+info.md

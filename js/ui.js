@@ -1,14 +1,21 @@
-import { renderVoucherCard, capitalize } from "./voucher-card.js";
 import { getEvents, getVendors } from "./api.js";
-import { setSearch, setVendor, setSort, getFilters, submitSearch, clearSearch } from "./app.js";
-import { showWelcomeModal } from "./welcome-modal.js";
+import { setSearch, setVendor, setSort, getFilters, clearSearch } from "./app.js";
 import { initTheme, toggleTheme, getCurrentTheme } from "./theme.js";
+import { ICONS } from "./components/icons.js";
+import { renderSiteHeader } from "./components/site-header.js";
+import { renderSiteFooter } from "./components/site-footer.js";
+import { renderHero } from "./components/hero.js";
+import { renderFilterBar } from "./components/filter-bar.js";
+import { renderOpportunityCard } from "./components/opportunity-card.js";
+import { renderPaginationHtml, paginationState, isFilterActive } from "./components/pagination.js";
+import { renderSkeletonGrid, renderEmptyState, renderErrorState, renderResultsCount } from "./components/feed-state.js";
+import { renderHowItWorks } from "./components/how-it-works.js";
+import { renderNotificationCta } from "./components/notification-cta.js";
 import {
   renderAboutPage,
   renderPrivacyPage,
   renderTermsPage,
   renderDisclaimerPage,
-  renderFooter,
   renderNotificationsPage,
   renderDiscordPrivacyPage,
   renderDiscordTermsPage,
@@ -17,7 +24,7 @@ import {
   renderTelegramPrivacyPage,
   renderTelegramTermsPage,
   renderTelegramDisclaimerPage,
-} from "./pages.js";
+} from "./pages/legal-pages.js";
 
 let events = [];
 let currentPage = 1;
@@ -29,6 +36,8 @@ let isFetching = false;
 const CLIENT_SIZE = 6;
 const WINDOW_SIZE = 5;
 const queryCache = new Map();
+
+/* ── State helpers ── */
 
 function sortByCreatedAt(list) {
   const dir = getFilters().sort === "oldest" ? 1 : -1;
@@ -48,321 +57,175 @@ function saveCache() {
   queryCache.set(cacheKey(), { events: [...events], nextCursor });
 }
 
+function htmlToEl(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+
+/* ── Home shell ── */
+
+function homeShellHtml(vendors) {
+  return `
+    ${renderSiteHeader()}
+    ${renderHero(vendors)}
+    <div class="container">
+      <div data-filter-slot></div>
+      <section class="feed-section" id="feed" aria-label="Latest certification opportunities">
+        <div class="feed-head">
+          <h2 class="section-heading">Latest opportunities</h2>
+          <span class="results-count" id="results-count" aria-live="polite"></span>
+        </div>
+        <div id="feed-status"></div>
+        <nav class="pagination" id="pagination" aria-label="Listings pages"></nav>
+      </section>
+    </div>
+    ${renderHowItWorks()}
+    ${renderNotificationCta()}
+    ${renderSiteFooter()}
+  `;
+}
+
+function buildHomeShell(vendors) {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  app.appendChild(htmlToEl(homeShellHtml(vendors)));
+  document.querySelector("[data-filter-slot]").appendChild(htmlToEl(renderFilterBar(vendors)));
+  bindHomeShell();
+}
+
+function bindHomeShell() {
+  bindThemeToggle();
+
+  const form = document.querySelector("[data-search-form]");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const value = form.querySelector(".search-input").value;
+      setSearch(value);
+      window.dispatchEvent(new CustomEvent("filterchange"));
+    });
+  }
+
+  const chips = document.querySelector(".vendor-chips");
+  if (chips) {
+    chips.addEventListener("click", (e) => {
+      const chip = e.target.closest(".vendor-chip");
+      if (!chip) return;
+      setVendor(chip.dataset.vendor);
+      syncFilterControls();
+    });
+  }
+
+  const bar = document.querySelector("[data-filter-bar]");
+  if (bar) {
+    bar.querySelector("[data-filter-vendor]").addEventListener("change", (e) => {
+      setVendor(e.target.value);
+      syncFilterControls();
+    });
+    bar.querySelector("[data-filter-sort]").addEventListener("change", (e) => setSort(e.target.value));
+    bar.querySelector("[data-filter-clear]").addEventListener("click", clearAllFilters);
+  }
+
+  document.getElementById("pagination").addEventListener("click", onPaginationClick);
+
+  const feedStatus = document.getElementById("feed-status");
+  feedStatus.addEventListener("click", (e) => {
+    if (e.target.closest("[data-empty-clear]")) clearAllFilters();
+    if (e.target.closest("#retry-btn")) loadFeed(true);
+  });
+}
+
+function syncFilterControls() {
+  const select = document.querySelector("[data-filter-vendor]");
+  if (select) select.value = getFilters().vendor;
+  const search = document.querySelector("[data-search-form] .search-input");
+  if (search) search.value = getFilters().search;
+  updateClearVisibility();
+}
+
+function updateClearVisibility() {
+  const clearBtn = document.querySelector("[data-filter-clear]");
+  if (clearBtn) clearBtn.classList.toggle("hidden", !isFilterActive());
+}
+
+function clearAllFilters() {
+  setSearch("");
+  setVendor("all");
+  syncFilterControls();
+  window.dispatchEvent(new CustomEvent("filterchange"));
+}
+
 /* ── Theme toggle ── */
 
-function createThemeToggle() {
-  const btn = document.createElement("button");
-  btn.className = "theme-toggle";
-  btn.setAttribute("aria-label", "Toggle theme");
-  btn.innerHTML = getCurrentTheme() === "dark"
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+function themeIconFor(theme) {
+  return theme === "dark" ? ICONS.sun : ICONS.moon;
+}
+
+function bindThemeToggle() {
+  const btn = document.querySelector("[data-theme-toggle]");
+  if (!btn) return;
+  btn.innerHTML = themeIconFor(getCurrentTheme());
   btn.addEventListener("click", () => {
     toggleTheme();
-    const isDark = getCurrentTheme() === "dark";
-    btn.innerHTML = isDark
-      ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    btn.innerHTML = themeIconFor(getCurrentTheme());
   });
-  return btn;
 }
 
-function createHeader() {
-  const header = document.createElement("header");
-  header.className = "page-header";
-  const heading = document.createElement("div");
-  heading.className = "page-header-heading";
-  heading.innerHTML = '<h1><a href="#" class="header-home-link" aria-label="Back to home">Vouchers &amp; Promotions</a></h1><p class="subtitle">Certification opportunities &mdash; curated</p>';
-  header.appendChild(heading);
-  header.appendChild(createThemeToggle());
-  return header;
+/* ── Feed painting ── */
+
+function paintSkeletons() {
+  document.getElementById("results-count").textContent = "Loading…";
+  document.getElementById("pagination").innerHTML = "";
+  document.getElementById("feed-status").innerHTML = renderSkeletonGrid(6);
+  document.getElementById("feed").setAttribute("aria-busy", "true");
 }
 
-/* ── Notification CTA ── */
-
-function createNotifyCta() {
-  const a = document.createElement("a");
-  a.className = "notify-cta";
-  a.href = "#notifications";
-  a.innerHTML = `
-    <span class="notify-cta-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-    <span class="notify-cta-text">
-      <span class="notify-cta-title">Set Up Notifications</span>
-      <span class="notify-cta-sub">New voucher alerts delivered to you on Discord or Telegram</span>
-    </span>
-    <span class="notify-cta-go" aria-hidden="true">&rarr;</span>
-  `;
-  return a;
+function paintError(message) {
+  const feed = document.getElementById("feed");
+  feed.removeAttribute("aria-busy");
+  document.getElementById("results-count").textContent = "";
+  document.getElementById("pagination").innerHTML = "";
+  document.getElementById("feed-status").innerHTML = renderErrorState(message);
 }
 
-/* ── Initial states ── */
-
-export function renderLoading() {
-  showWelcomeModal();
-  const app = document.getElementById("app");
-  app.innerHTML = "";
-
-  const header = createHeader();
-  app.appendChild(header);
-
-  app.appendChild(createNotifyCta());
-
+function paintFeed() {
   const grid = document.createElement("div");
   grid.className = "card-grid";
-  grid.id = "card-grid";
-
-  for (let i = 0; i < 6; i++) {
-    grid.appendChild(createSkeleton());
-  }
-
-  app.appendChild(grid);
-  app.appendChild(renderFooter());
-}
-
-export function renderError(message, retryFn) {
-  const app = document.getElementById("app");
-  app.innerHTML = "";
-
-  const header = createHeader();
-  app.appendChild(header);
-
-  app.appendChild(createNotifyCta());
-
-  const banner = document.createElement("div");
-  banner.className = "error-banner";
-
-  const msg = document.createElement("p");
-  msg.className = "error-message";
-  msg.textContent = message;
-  banner.appendChild(msg);
-
-  const btn = document.createElement("button");
-  btn.className = "page-btn retry-btn";
-  btn.textContent = "Retry";
-  btn.addEventListener("click", () => retryFn());
-  banner.appendChild(btn);
-
-  app.appendChild(banner);
-  app.appendChild(renderFooter());
-}
-
-/* ── Main render ── */
-
-function renderApp(newEvents, nc, reset) {
-  showWelcomeModal();
-  if (reset) {
-    events = sortByCreatedAt(newEvents);
-    currentPage = 1;
-    pageWindowStart = 1;
-  } else {
-    events = sortByCreatedAt(events.concat(newEvents));
-    currentPage = Math.ceil(events.length / CLIENT_SIZE);
-    pageWindowStart = Math.floor((currentPage - 1) / WINDOW_SIZE) * WINDOW_SIZE + 1;
-  }
-
-  nextCursor = nc;
-  saveCache();
-
-  const app = document.getElementById("app");
-  app.innerHTML = "";
-
-  const header = createHeader();
-  app.appendChild(header);
-
-  app.appendChild(createNotifyCta());
-
-  const filters = renderFilters();
-  app.appendChild(filters);
-
-  const grid = document.createElement("div");
-  grid.className = "card-grid";
-  grid.id = "card-grid";
-  app.appendChild(grid);
-
-  const pagination = document.createElement("nav");
-  pagination.className = "pagination";
-  pagination.id = "pagination";
-  app.appendChild(pagination);
-
-  app.appendChild(renderFooter());
-  renderPage();
-}
-
-/* ── Filters ── */
-
-function renderFilters() {
-  const bar = document.createElement("div");
-  bar.className = "filter-bar";
-
-  const searchInput = document.createElement("input");
-  searchInput.type = "text";
-  searchInput.className = "search-input";
-  searchInput.placeholder = "Search by title…";
-  searchInput.value = getFilters().search;
-  searchInput.addEventListener("input", (e) => setSearch(e.target.value));
-  searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") submitSearch();
-  });
-  bar.appendChild(searchInput);
-
-  const vendorSelect = document.createElement("select");
-  vendorSelect.className = "filter-select";
-  vendorSelect.addEventListener("change", (e) => setVendor(e.target.value));
-
-  const allOpt = document.createElement("option");
-  allOpt.value = "all";
-  allOpt.textContent = "All Vendors";
-  vendorSelect.appendChild(allOpt);
-
-  getVendors()
-    .then((vendors) => {
-      for (const v of vendors) {
-        const opt = document.createElement("option");
-        opt.value = v.vendor;
-        opt.textContent = capitalize(v.vendor);
-        vendorSelect.appendChild(opt);
-      }
-      vendorSelect.value = getFilters().vendor;
-    })
-    .catch((err) => console.error("Failed to load vendors:", err));
-
-  bar.appendChild(vendorSelect);
-
-  const sortSelect = document.createElement("select");
-  sortSelect.className = "filter-select";
-  sortSelect.innerHTML = `
-    <option value="newest">Newest First</option>
-    <option value="oldest">Oldest First</option>
-  `;
-  sortSelect.value = getFilters().sort;
-  sortSelect.addEventListener("change", (e) => setSort(e.target.value));
-  bar.appendChild(sortSelect);
-
-  const searchBtn = document.createElement("button");
-  searchBtn.className = "btn btn-primary";
-  searchBtn.textContent = "Search";
-  searchBtn.type = "button";
-  searchBtn.addEventListener("click", () => submitSearch());
-  bar.appendChild(searchBtn);
-
-  const clearBtn = document.createElement("button");
-  clearBtn.className = "btn btn-ghost";
-  clearBtn.textContent = "Clear";
-  clearBtn.type = "button";
-  clearBtn.addEventListener("click", () => {
-    searchInput.value = "";
-    setSearch("");
-    clearSearch();
-  });
-  bar.appendChild(clearBtn);
-
-  return bar;
-}
-
-/* ── Page render ── */
-
-function renderPage() {
-  const grid = document.getElementById("card-grid");
-  grid.innerHTML = "";
 
   const start = (currentPage - 1) * CLIENT_SIZE;
   const pageEvents = events.slice(start, start + CLIENT_SIZE);
 
+  if (!pageEvents.length) {
+    document.getElementById("feed").removeAttribute("aria-busy");
+    document.getElementById("results-count").textContent = renderResultsCount(events.length);
+    document.getElementById("pagination").innerHTML = "";
+    document.getElementById("feed-status").innerHTML = events.length ? "" : renderEmptyState();
+    updateClearVisibility();
+    return;
+  }
+
   const fragment = document.createDocumentFragment();
   for (const event of pageEvents) {
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = renderVoucherCard(event);
-    fragment.appendChild(wrapper.firstElementChild);
+    fragment.appendChild(htmlToEl(renderOpportunityCard(event)));
   }
   grid.appendChild(fragment);
 
-  renderPagination();
-}
+  const status = document.getElementById("feed-status");
+  status.innerHTML = "";
+  status.appendChild(grid);
 
-function renderPagination() {
-  const el = document.getElementById("pagination");
-  el.innerHTML = "";
+  document.getElementById("feed").removeAttribute("aria-busy");
+  document.getElementById("results-count").textContent = renderResultsCount(events.length);
 
-  const clientTotal = Math.ceil(events.length / CLIENT_SIZE);
-  const hasMore = nextCursor !== null;
-
-  if (clientTotal <= 1 && !hasMore) return;
-
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "page-btn";
-  prevBtn.textContent = "← Previous";
-  prevBtn.disabled = currentPage === 1;
-  prevBtn.addEventListener("click", () => {
-    if (currentPage > 1) {
-      currentPage--;
-      if (currentPage < pageWindowStart) {
-        pageWindowStart = Math.max(1, pageWindowStart - WINDOW_SIZE);
-      }
-      renderPage();
-    }
-  });
-  el.appendChild(prevBtn);
-
-  const firstBtn = document.createElement("button");
-  firstBtn.className = "page-btn";
-  firstBtn.textContent = "<<";
-  firstBtn.disabled = currentPage === 1;
-  firstBtn.addEventListener("click", () => {
-    currentPage = 1;
-    pageWindowStart = 1;
-    renderPage();
-  });
-  el.appendChild(firstBtn);
-
-  const windowEnd = Math.min(pageWindowStart + WINDOW_SIZE - 1, clientTotal);
-  for (let i = pageWindowStart; i <= windowEnd; i++) {
-    const btn = document.createElement("button");
-    btn.className = `page-btn${i === currentPage ? " active" : ""}`;
-    btn.textContent = i;
-    btn.addEventListener("click", () => {
-      currentPage = i;
-      if (i === windowEnd && windowEnd < clientTotal) {
-        pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
-      }
-      renderPage();
-    });
-    el.appendChild(btn);
-  }
-
-  const lastBtn = document.createElement("button");
-  lastBtn.className = "page-btn";
-  lastBtn.textContent = ">>";
-  lastBtn.disabled = pageWindowStart + WINDOW_SIZE > clientTotal;
-  lastBtn.addEventListener("click", () => {
-    pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
-    currentPage = Math.min(pageWindowStart + WINDOW_SIZE - 1, clientTotal);
-    renderPage();
-  });
-  el.appendChild(lastBtn);
-
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "page-btn";
-  nextBtn.textContent = "Next →";
-  if (currentPage < clientTotal) {
-    nextBtn.addEventListener("click", () => {
-      currentPage++;
-      if (currentPage > pageWindowStart + WINDOW_SIZE - 1) {
-        pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, clientTotal);
-      }
-      renderPage();
-    });
-  } else if (hasMore) {
-    nextBtn.addEventListener("click", loadMore);
-    nextBtn.id = "load-more-btn";
-  } else {
-    nextBtn.disabled = true;
-  }
-  el.appendChild(nextBtn);
+  const state = paginationState(events, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE);
+  document.getElementById("pagination").innerHTML = renderPaginationHtml(state);
+  updateClearVisibility();
 }
 
 /* ── Data fetching ── */
 
-async function fetchAndRender(reset) {
+async function loadFeed(reset) {
   if (isFetching) return;
   isFetching = true;
 
@@ -372,11 +235,12 @@ async function fetchAndRender(reset) {
       events = [...cached.events];
       nextCursor = cached.nextCursor;
       currentPage = 1;
-      renderApp(events, nextCursor, true);
+      pageWindowStart = 1;
+      paintFeed();
       isFetching = false;
       return;
     }
-    renderLoading();
+    paintSkeletons();
   }
 
   try {
@@ -385,20 +249,22 @@ async function fetchAndRender(reset) {
       ...filters,
       cursor: reset ? null : undefined,
     });
-    renderApp(newEvents, nc, reset);
-  } catch (err) {
-    console.error("Failed to fetch events:", err);
+
     if (reset) {
-      renderError("Failed to load vouchers. Please check your connection and try again.", () => fetchAndRender(true));
+      events = sortByCreatedAt(newEvents);
+      nextCursor = nc;
+      currentPage = 1;
+      pageWindowStart = 1;
     }
+    saveCache();
+    paintFeed();
+  } catch (err) {
+    console.error("Failed to fetch listings:", err);
+    if (reset) paintError("Failed to load vouchers. Please check your connection and try again.");
   } finally {
     isFetching = false;
   }
 }
-
-window.addEventListener("filterchange", () => fetchAndRender(true));
-
-/* ── Load more ── */
 
 async function loadMore() {
   if (isLoadingMore) return;
@@ -406,10 +272,9 @@ async function loadMore() {
 
   const btn = document.getElementById("load-more-btn");
   const status = showLoadMoreStatus();
-
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Loading...";
+    btn.innerHTML = "Loading…";
   }
 
   try {
@@ -419,10 +284,11 @@ async function loadMore() {
     events = sortByCreatedAt(events.concat(newEvents));
     nextCursor = nc;
     currentPage = Math.ceil(events.length / CLIENT_SIZE);
+    pageWindowStart = Math.floor((currentPage - 1) / WINDOW_SIZE) * WINDOW_SIZE + 1;
     saveCache();
 
     clearLoadMoreStatus();
-    renderPage();
+    paintFeed();
   } catch (err) {
     console.error("Failed to load more:", err);
     status.textContent = "Failed to load more items.";
@@ -434,10 +300,9 @@ async function loadMore() {
       loadMore();
     });
     status.appendChild(retryBtn);
-
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Next →";
+      btn.innerHTML = "Next &rarr;";
     }
   } finally {
     isLoadingMore = false;
@@ -446,23 +311,14 @@ async function loadMore() {
 
 function showLoadMoreStatus() {
   clearLoadMoreStatus();
-
-  const status = document.createElement("div");
-  status.className = "load-more-status";
-  status.id = "load-more-status";
-
-  const spinner = document.createElement("span");
-  spinner.className = "spinner";
-  status.appendChild(spinner);
-
-  const label = document.createElement("span");
-  label.textContent = "Loading more vouchers…";
-  status.appendChild(label);
-
-  const pagination = document.getElementById("pagination");
-  pagination.insertAdjacentElement("afterend", status);
-
-  return status;
+  const el = htmlToEl(`
+    <div class="load-more-status" id="load-more-status">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Loading more listings…</span>
+    </div>
+  `);
+  document.getElementById("pagination").insertAdjacentElement("afterend", el);
+  return el;
 }
 
 function clearLoadMoreStatus() {
@@ -470,34 +326,46 @@ function clearLoadMoreStatus() {
   if (existing) existing.remove();
 }
 
-/* ── Skeleton ── */
+/* ── Pagination interactions ── */
 
-function createSkeleton() {
-  const card = document.createElement("div");
-  card.className = "skeleton-card";
+function onPaginationClick(e) {
+  const btn = e.target.closest("[data-page-action]");
+  if (!btn || btn.disabled) return;
 
-  const title = document.createElement("div");
-  title.className = "skeleton-line skeleton-title";
-  card.appendChild(title);
+  const action = btn.dataset.pageAction;
+  const state = paginationState(events, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE);
+  const total = state.totalPages;
 
-  const link = document.createElement("div");
-  link.className = "skeleton-line skeleton-link";
-  card.appendChild(link);
-
-  const meta = document.createElement("div");
-  meta.className = "skeleton-meta";
-  for (let i = 0; i < 3; i++) {
-    const badge = document.createElement("div");
-    badge.className = "skeleton-line skeleton-badge";
-    meta.appendChild(badge);
+  switch (action) {
+    case "goto":
+      currentPage = Number(btn.dataset.page);
+      break;
+    case "prev":
+      if (currentPage > 1) currentPage--;
+      break;
+    case "next":
+      if (currentPage < total) currentPage++;
+      break;
+    case "first":
+      currentPage = 1;
+      break;
+    case "window-forward":
+      pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, Math.max(total, 1));
+      currentPage = Math.min(Math.max(pageWindowStart, 1), total || 1);
+      break;
+    case "more":
+      loadMore();
+      return;
   }
-  card.appendChild(meta);
 
-  const reason = document.createElement("div");
-  reason.className = "skeleton-line skeleton-reason";
-  card.appendChild(reason);
+  if (currentPage < pageWindowStart) {
+    pageWindowStart = Math.max(1, pageWindowStart - WINDOW_SIZE);
+  } else if (currentPage > pageWindowStart + WINDOW_SIZE - 1) {
+    pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, Math.max(total, 1));
+  }
 
-  return card;
+  paintFeed();
+  document.getElementById("feed").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ── Router ── */
@@ -525,27 +393,96 @@ function renderLegalRoute(hash) {
   app.innerHTML = "";
   window.scrollTo(0, 0);
 
-  const header = createHeader();
-  app.appendChild(header);
-
-  const page = renderFn();
-  app.appendChild(page);
-
-  app.appendChild(renderFooter());
+  app.appendChild(htmlToEl(renderSiteHeader()));
+  app.appendChild(htmlToEl(`<main class="container">${renderFn()}</main>`));
+  app.appendChild(htmlToEl(renderSiteFooter()));
+  bindThemeToggle();
   return true;
 }
 
-function navigate() {
+function isHomeRendered() {
+  return Boolean(document.getElementById("feed"));
+}
+
+async function navigateHome() {
+  if (!isHomeRendered()) {
+    buildHomeShell(null);
+    populateVendorData();
+  }
+  await loadFeed(true);
+}
+
+let vendorsLoaded = false;
+
+async function populateVendorData() {
+  if (vendorsLoaded) return;
+  vendorsLoaded = true;
+  try {
+    const vendors = await getVendors();
+    const slot = document.querySelector(".vendor-chips");
+    const select = document.querySelector("[data-filter-vendor]");
+    if (slot && !slot.children.length) {
+      for (const v of vendors) {
+        const chip = htmlToEl(`<button type="button" class="vendor-chip" data-vendor="${v.vendor}"></button>`);
+        chip.textContent = v.vendor.replace(/\b\w/g, (c) => c.toUpperCase());
+        slot.appendChild(chip);
+      }
+    }
+    if (select && select.options.length <= 1) {
+      for (const v of vendors) {
+        const opt = document.createElement("option");
+        opt.value = v.vendor;
+        opt.textContent = v.vendor.replace(/\b\w/g, (c) => c.toUpperCase());
+        select.appendChild(opt);
+      }
+      select.value = getFilters().vendor;
+    }
+  } catch (err) {
+    console.error("Failed to load vendors:", err);
+    vendorsLoaded = false;
+  }
+}
+
+window.addEventListener("hashchange", () => {
   const hash = location.hash.replace("#", "");
   if (!hash || hash === "home") {
-    fetchAndRender(true);
+    navigateHome();
     window.scrollTo(0, 0);
     return;
   }
-  renderLegalRoute(hash);
+  if (PAGE_ROUTES[hash]) {
+    renderLegalRoute(hash);
+    return;
+  }
+  if (hash === "how-it-works") {
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+  }
+});
+
+/* ── Server-rendered enhancement ── */
+
+function swapNode(selector, html) {
+  const existing = document.querySelector(selector);
+  if (!existing) return null;
+  const fresh = htmlToEl(html);
+  existing.replaceWith(fresh);
+  return fresh;
 }
 
-window.addEventListener("hashchange", navigate);
+function enhanceServerRendered(initial) {
+  events = sortByCreatedAt(initial.events);
+  nextCursor = initial.nextCursor ?? null;
+  currentPage = 1;
+  pageWindowStart = 1;
+  saveCache();
+
+  swapNode(".site-header", renderSiteHeader());
+  swapNode(".hero", renderHero(initial.vendors));
+  swapNode("[data-filter-bar]", renderFilterBar(initial.vendors));
+
+  bindHomeShell();
+  paintFeed();
+}
 
 /* ── Bootstrap ── */
 
@@ -558,8 +495,21 @@ async function init() {
     return;
   }
 
-  renderLoading();
-  await fetchAndRender(true);
+  const initial = window.__INITIAL_DATA__;
+  if (
+    initial &&
+    initial.ok !== false &&
+    Array.isArray(initial.events) &&
+    document.getElementById("card-grid")
+  ) {
+    enhanceServerRendered(initial);
+    return;
+  }
+
+  buildHomeShell(null);
+  paintSkeletons();
+  populateVendorData();
+  await loadFeed(true);
 }
 
 init();
