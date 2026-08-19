@@ -20,6 +20,7 @@ export function renderVendorPage(vendor, events, totalAvailable) {
       </div>
     </section>
     <div class="container">
+      <h2 class="sr-only">${escapeHtml(name)} listings</h2>
       ${
         count
           ? `<div class="card-grid" id="card-grid">\n${events.map((e) => renderOpportunityCard(e)).join("\n")}\n</div>`

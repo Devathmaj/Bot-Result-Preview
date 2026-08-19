@@ -362,7 +362,7 @@ async function loadMore() {
 function showLoadMoreStatus() {
   clearLoadMoreStatus();
   const el = htmlToEl(`
-    <div class="load-more-status" id="load-more-status">
+    <div class="load-more-status" id="load-more-status" role="status">
       <span class="spinner" aria-hidden="true"></span>
       <span>Loading more listings…</span>
     </div>

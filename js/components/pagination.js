@@ -10,6 +10,7 @@ export function renderPaginationHtml({ currentPage, totalPages, windowStart, win
       opts.disabled ? "disabled" : "",
       opts.id ? `id="${opts.id}"` : "",
       opts.label ? `aria-label="${opts.label}"` : "",
+      opts.active ? `aria-current="true"` : "",
     ].filter(Boolean).join(" ");
     return `<button ${attrs}>${label}</button>`;
   };

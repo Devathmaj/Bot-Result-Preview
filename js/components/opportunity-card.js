@@ -26,6 +26,7 @@ export function renderAiFlag(ai) {
     <span class="ai-flag" title="Confidence of the automated analysis that identified this listing — not a verification of the offer.">
       <span class="ai-dots" aria-hidden="true">${dots}</span>
       <span class="ai-label">AI &middot; ${tier.label}</span>
+      <span class="sr-only">AI confidence: ${tier.label.toLowerCase()}. Not a verification of the offer.</span>
     </span>
   `;
 }

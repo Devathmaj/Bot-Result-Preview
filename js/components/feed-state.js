@@ -26,7 +26,7 @@ export function renderEmptyState() {
 
 export function renderErrorState(message, retryId = "retry-btn") {
   return `
-    <div class="error-banner">
+    <div class="error-banner" role="alert">
       <p class="error-message">${message}</p>
       <button type="button" class="btn btn-primary" id="${retryId}">Retry</button>
     </div>

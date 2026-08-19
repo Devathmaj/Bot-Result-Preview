@@ -28,19 +28,20 @@ function parseDate(dateStr) {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/* Dates are formatted in UTC so server-rendered and client-rendered
+ * output are identical regardless of the viewer's timezone. */
 export function formatShortDate(dateStr) {
   const d = parseDate(dateStr);
   if (!d) return "";
-  const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  const year = sameYear ? "" : ` ${d.getFullYear()}`;
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}${year}`;
+  const sameYear = d.getUTCFullYear() === new Date().getUTCFullYear();
+  const year = sameYear ? "" : ` ${d.getUTCFullYear()}`;
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${year}`;
 }
 
 export function formatFullDate(dateStr) {
   const d = parseDate(dateStr);
   if (!d) return "";
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 export function hostOf(url) {
