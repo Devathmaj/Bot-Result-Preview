@@ -413,6 +413,7 @@ img { max-width: 100%; }
 .vendor-chip {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   min-height: 44px;
   padding: 0.3rem 0.95rem;
   font-size: 0.78rem;
@@ -422,12 +423,26 @@ img { max-width: 100%; }
   color: var(--tag-text);
   border: 1px solid var(--border-light);
   cursor: pointer;
+  text-decoration: none;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .vendor-chip:hover {
   background: var(--tag-bg);
   border-color: var(--border);
+}
+
+.chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--tag-bg);
+  color: var(--tag-text);
 }
 
 /* â•â•â• Filter bar â•â•â• */

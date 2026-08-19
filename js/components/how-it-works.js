@@ -13,7 +13,7 @@ export function renderHowItWorks() {
       text: "Flagged items are published here with their source, dates, and analysis summary.",
     },
     {
-      title: "Confirmed by you",
+      title: "You decide",
       text: "Availability and terms are controlled by the issuer — always check details at the source before acting.",
     },
   ];

@@ -3,6 +3,7 @@ import { renderSiteFooter } from "../../js/components/site-footer.js";
 import { renderNotificationCta } from "../../js/components/notification-cta.js";
 import { renderOpportunityDetail, renderRelatedSection } from "../../js/components/opportunity-detail.js";
 import { renderMessagePage } from "../../js/components/page-shells.js";
+import { normalizeEvent } from "../../js/utils.js";
 import {
   htmlHeaders,
   jsonLdScript,
@@ -60,11 +61,12 @@ export async function onRequestGet({ request, env, params }) {
       );
     }
 
-    const item = data.data.find((e) => e.id === id);
+    const allEvents = data.data.map(normalizeEvent);
+    const item = allEvents.find((e) => e.id === id);
     if (!item) return notFound();
 
     const related = item.vendor
-      ? data.data.filter((e) => e.id !== item.id && e.vendor === item.vendor).slice(0, 3)
+      ? allEvents.filter((e) => e.id !== item.id && e.vendor === item.vendor).slice(0, 3)
       : [];
 
     const summaryText = (item.summary || item.ai_result?.promotion_name || item.title || "Certification opportunity listing").slice(0, 155);

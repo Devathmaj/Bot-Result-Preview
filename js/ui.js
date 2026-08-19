@@ -6,11 +6,12 @@ import {
   setDiscovered,
   setFlag,
   getFilters,
+  resetFilters,
   readFiltersFromUrl,
   filtersToUrl,
 } from "./app.js";
 import { initTheme } from "./theme.js";
-import { matchesQuery, confidenceTier } from "./utils.js";
+import { matchesQuery, confidenceTier, countByVendor } from "./utils.js";
 import { renderSiteHeader, bindThemeToggleBehavior } from "./components/site-header.js";
 import { renderSiteFooter } from "./components/site-footer.js";
 import { renderHero } from "./components/hero.js";
@@ -20,12 +21,12 @@ import { renderPaginationHtml, paginationState } from "./components/pagination.j
 import { renderSkeletonGrid, renderEmptyState, renderErrorState, renderResultsCount } from "./components/feed-state.js";
 import { renderHowItWorks } from "./components/how-it-works.js";
 import { renderNotificationCta } from "./components/notification-cta.js";
+import { renderNotificationsPage } from "./pages/notifications-page.js";
 import {
   renderAboutPage,
   renderPrivacyPage,
   renderTermsPage,
   renderDisclaimerPage,
-  renderNotificationsPage,
   renderDiscordPrivacyPage,
   renderDiscordTermsPage,
   renderDiscordDisclaimerPage,
@@ -59,7 +60,7 @@ function sortByCreatedAt(list) {
 
 function cacheKey() {
   const f = getFilters();
-  return `${f.vendor}|${f.sort}|${f.discovered}|${f.flag}`;
+  return `${f.vendor}|${f.discovered}|${f.flag}`;
 }
 
 function saveCache() {
@@ -70,6 +71,24 @@ function htmlToEl(html) {
   const t = document.createElement("template");
   t.innerHTML = html.trim();
   return t.content.firstElementChild;
+}
+
+/* Some builders emit multiple sibling elements (skip-link + header, etc.);
+ * append every parsed node instead of just the first. */
+function appendHtml(parent, html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  parent.append(...t.content.children);
+}
+
+function swapNodes(selector, html) {
+  const existing = document.querySelector(selector);
+  if (!existing) return null;
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  const nodes = [...t.content.children];
+  existing.replaceWith(...nodes);
+  return nodes.length === 1 ? nodes[0] : nodes.find((n) => n.matches("form,[data-filter-bar]")) || null;
 }
 
 function visibleEvents() {
@@ -90,7 +109,7 @@ function visibleEvents() {
     list = list.filter((e) => confidenceTier(e.ai_result?.confidence)?.key === f.flag);
   }
 
-  return list;
+  return sortByCreatedAt(list);
 }
 
 function isLocalFilterActive() {
@@ -130,8 +149,9 @@ function homeShellHtml(vendors) {
 function buildHomeShell(vendors) {
   const app = document.getElementById("app");
   app.innerHTML = "";
-  app.appendChild(htmlToEl(homeShellHtml(vendors)));
-  document.querySelector("[data-filter-slot]").appendChild(htmlToEl(renderFilterBar(vendors)));
+  appendHtml(app, homeShellHtml(vendors));
+  const slot = document.querySelector("[data-filter-slot]");
+  if (slot) slot.appendChild(htmlToEl(renderFilterBar(vendors)));
   bindHomeShell();
 }
 
@@ -188,7 +208,14 @@ function syncFilterControls() {
   };
   for (const [sel2, value] of Object.entries(map)) {
     const el = document.querySelector(sel2);
-    if (el) el.value = value;
+    if (!el) continue;
+    if (sel2 === "[data-filter-vendor]" && el.options.length) {
+      const wanted = String(value || "all").toLowerCase();
+      const opt = [...el.options].find((o) => o.value.toLowerCase() === wanted);
+      el.value = opt ? opt.value : "all";
+    } else {
+      el.value = value;
+    }
   }
   const search = document.querySelector("[data-search-form] .search-input");
   if (search) search.value = f.search;
@@ -201,12 +228,8 @@ function updateClearVisibility() {
 }
 
 function clearAllFilters() {
-  setSearch("");
-  setVendor("all");
-  setDiscovered("any");
-  setFlag("any");
-  setSort("newest");
-  window.dispatchEvent(new CustomEvent("filterchange"));
+  resetFilters();
+  syncFilterControls();
 }
 
 /* ── Feed painting ── */
@@ -226,6 +249,7 @@ function paintError(message) {
 }
 
 function paintFeed() {
+  syncFilterControls();
   const list = visibleEvents();
 
   document.getElementById("feed").removeAttribute("aria-busy");
@@ -267,10 +291,30 @@ function paintFeed() {
   syncUrlToFilters();
 }
 
+/* ── Filter change pipeline ──
+ * Controls update state in app.js and dispatch "filterchange".
+ * This listener is the single trigger that repaints the feed.
+ * loadFeed(true) serves from the query cache when only local filters
+ * (search / discovered / flag) changed, so those updates are instant. */
+
+let pendingReload = false;
+
+function onFiltersChanged() {
+  currentPage = 1;
+  pageWindowStart = 1;
+  if (!isHomeRendered()) return;
+  loadFeed(true);
+}
+
+window.addEventListener("filterchange", onFiltersChanged);
+
 /* ── Data fetching ── */
 
 async function loadFeed(reset) {
-  if (isFetching) return;
+  if (isFetching) {
+    if (reset) pendingReload = true;
+    return;
+  }
   isFetching = true;
 
   if (reset) {
@@ -289,14 +333,22 @@ async function loadFeed(reset) {
 
   try {
     const filters = getFilters();
+    let vendorParam = filters.vendor;
+    if (vendorParam && vendorParam !== "all") {
+      try {
+        const known = await getVendors();
+        const match = known?.find((v) => v.vendor.toLowerCase() === vendorParam.toLowerCase());
+        if (match) vendorParam = match.vendor;
+      } catch (e) {}
+    }
     const { events: newEvents, nextCursor: nc } = await getEvents({
-      vendor: filters.vendor,
+      vendor: vendorParam,
       sort: filters.sort,
       cursor: reset ? null : undefined,
     });
 
     if (reset) {
-      events = sortByCreatedAt(newEvents);
+      events = newEvents;
       nextCursor = nc;
       currentPage = 1;
       pageWindowStart = 1;
@@ -308,6 +360,10 @@ async function loadFeed(reset) {
     if (reset) paintError("Failed to load vouchers. Please check your connection and try again.");
   } finally {
     isFetching = false;
+    if (pendingReload) {
+      pendingReload = false;
+      loadFeed(true);
+    }
   }
 }
 
@@ -330,7 +386,7 @@ async function loadMore() {
       cursor: nextCursor,
     });
 
-    events = sortByCreatedAt(events.concat(newEvents));
+    events = events.concat(newEvents);
     nextCursor = nc;
     const total = visibleEvents().length;
     currentPage = Math.max(1, Math.ceil(total / CLIENT_SIZE));
@@ -443,7 +499,16 @@ function renderLegalRoute(hash) {
   window.scrollTo(0, 0);
 
   app.appendChild(htmlToEl(renderSiteHeader()));
-  app.appendChild(htmlToEl(`<main class="container">${renderFn()}</main>`));
+
+  const main = htmlToEl('<main class="container"></main>');
+  const content = renderFn();
+  if (typeof content === "string") {
+    main.innerHTML = content;
+  } else {
+    main.appendChild(content);
+  }
+  app.appendChild(main);
+
   app.appendChild(htmlToEl(renderSiteFooter()));
   bindThemeToggleBehavior();
   return true;
@@ -456,8 +521,8 @@ function isHomeRendered() {
 async function ensureHomeRendered() {
   if (isHomeRendered()) return;
   buildHomeShell(null);
-  populateVendorData();
   await loadFeed(true);
+  populateVendorData();
 }
 
 let vendorsLoaded = false;
@@ -472,7 +537,7 @@ async function populateVendorData() {
       const hero = document.querySelector(".hero");
       if (hero) {
         const searchValue = document.querySelector("[data-search-form] .search-input")?.value ?? "";
-        const fresh = htmlToEl(renderHero(vendors));
+        const fresh = htmlToEl(renderHero(vendors, countByVendor(events)));
         hero.replaceWith(fresh);
         const input = fresh.querySelector(".search-input");
         if (input) input.value = searchValue;
@@ -515,28 +580,28 @@ window.addEventListener("hashchange", async () => {
 
 /* ── Server-rendered enhancement ── */
 
-function swapNode(selector, html) {
-  const existing = document.querySelector(selector);
-  if (!existing) return null;
-  const fresh = htmlToEl(html);
-  existing.replaceWith(fresh);
-  return fresh;
-}
 
 function enhanceServerRendered(initial) {
-  events = sortByCreatedAt(initial.events);
+  events = initial.events;
   nextCursor = initial.nextCursor ?? null;
   currentPage = 1;
   pageWindowStart = 1;
   readFiltersFromUrl(location.search);
-  saveCache();
 
-  swapNode(".site-header", renderSiteHeader());
-  swapNode(".hero", renderHero(initial.vendors));
-  swapNode("[data-filter-bar]", renderFilterBar(initial.vendors));
+  /* Cache only when URL params don't request a server-side subset,
+   * otherwise this unfiltered payload would poison the cache key. */
+  const f = getFilters();
+  if (f.vendor === "all") saveCache();
+
+  swapNodes(".site-header", renderSiteHeader());
+  swapNodes(".hero", renderHero(initial.vendors, countByVendor(events)));
+  swapNodes("[data-filter-bar]", renderFilterBar(initial.vendors));
 
   bindHomeShell();
-  paintFeed();
+  /* Always resolve through loadFeed: with default filters it serves the
+   * adopted payload from cache instantly; with ?vendor=/&sort= params it
+   * fetches the correct server-filtered subset. */
+  loadFeed(true);
 }
 
 async function navigateHome() {
@@ -569,8 +634,8 @@ async function init() {
   readFiltersFromUrl(location.search);
   buildHomeShell(null);
   paintSkeletons();
-  populateVendorData();
   await loadFeed(true);
+  populateVendorData();
 }
 
 init();

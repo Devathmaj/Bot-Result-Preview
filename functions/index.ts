@@ -14,6 +14,7 @@ import {
   sortByCreatedDesc,
   renderDocument,
 } from "./_shared/layout.ts";
+import { countByVendor, normalizeEvent } from "../js/utils.js";
 
 /* ── Server-rendered homepage ──
  * Serves "/" with real opportunity content in the initial HTML.
@@ -46,10 +47,11 @@ function renderHomeBody(payload) {
   const grid = payload.ok
     ? payload.events.map((event) => renderOpportunityCard(event)).join("\n")
     : "";
+  const vendorCounts = payload.ok ? countByVendor(payload.events) : {};
 
   return `
   ${renderSiteHeader()}
-  ${renderHero(payload.vendors)}
+  ${renderHero(payload.vendors, vendorCounts)}
   <div class="container">
     <div data-filter-slot>${renderFilterBar(payload.vendors)}</div>
     <section class="feed-section" id="feed" aria-label="Latest certification opportunities" tabindex="-1">
@@ -89,7 +91,7 @@ export async function onRequestGet({ request, env }) {
     const ok = results[0].status === "fulfilled";
     const payload = {
       ok,
-      events: ok ? sortByCreatedDesc(results[0].value.data) : [],
+      events: ok ? sortByCreatedDesc(results[0].value.data).map(normalizeEvent) : [],
       nextCursor: ok ? (results[0].value.next_cursor ?? null) : null,
       vendors:
         results[1].status === "fulfilled"

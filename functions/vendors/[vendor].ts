@@ -4,7 +4,7 @@ import { renderHowItWorks } from "../../js/components/how-it-works.js";
 import { renderNotificationCta } from "../../js/components/notification-cta.js";
 import { renderVendorPage } from "../../js/components/vendor-page.js";
 import { renderMessagePage } from "../../js/components/page-shells.js";
-import { vendorLabel, vendorSlug } from "../../js/utils.js";
+import { vendorLabel, vendorSlug, normalizeEvent } from "../../js/utils.js";
 import {
   htmlHeaders,
   jsonLdScript,
@@ -65,7 +65,7 @@ export async function onRequestGet({ request, env, params }) {
       );
     }
 
-    const events = sortByCreatedDesc(eventsResult.data.filter((e) => e.vendor === vendor));
+    const events = sortByCreatedDesc(eventsResult.data.map(normalizeEvent).filter((e) => e.vendor === vendor));
     const name = vendorLabel(vendor);
     const vendorPath = `/vendors/${encodeURIComponent(vendorSlug(vendor))}`;
 

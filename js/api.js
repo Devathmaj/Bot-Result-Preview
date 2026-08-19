@@ -1,3 +1,5 @@
+import { normalizeEvent } from "./utils.js";
+
 const API_BASE = "/v1/api";
 
 export async function getEvents({ search, vendor, sort, limit = 100, cursor } = {}) {
@@ -20,7 +22,7 @@ export async function getEvents({ search, vendor, sort, limit = 100, cursor } = 
     throw new Error("API returned unsuccessful response");
   }
 
-  return { events: body.data, nextCursor: body.next_cursor };
+  return { events: body.data.map(normalizeEvent), nextCursor: body.next_cursor };
 }
 
 let vendorsCache = null;

@@ -1,4 +1,4 @@
-﻿import { escapeHtml } from "../utils.js";
+import { escapeHtml } from "../utils.js";
 
 const LAST_UPDATED = "July 24, 2026";
 const BOT_LAST_UPDATED = "August 16, 2026";
@@ -8,7 +8,7 @@ function renderLegalPage(title, sections, options = {}) {
   const page = document.createElement("div");
   page.className = "legal-page";
 
-  const backHref = options.backHref ?? "#";
+  const backHref = options.backHref ?? "/";
   const backLabel = options.backLabel ?? "Back to vouchers";
   const lastUpdated = options.lastUpdated ?? LAST_UPDATED;
 

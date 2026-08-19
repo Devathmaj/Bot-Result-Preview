@@ -47,6 +47,17 @@ export function clearSearch() {
   searchQuery = "";
 }
 
+/* Reset every filter in one state mutation and dispatch exactly one
+ * change event — avoids intermediate-event races in the pipeline. */
+export function resetFilters() {
+  searchQuery = "";
+  selectedVendor = "all";
+  selectedSort = "newest";
+  selectedDiscovered = "any";
+  selectedFlag = "any";
+  window.dispatchEvent(new CustomEvent("filterchange"));
+}
+
 /* ── Shareable URL params (q, vendor, sort, discovered, flag) ── */
 
 const PARAM_MAP = { q: "search", vendor: "vendor", sort: "sort", discovered: "discovered", flag: "flag" };

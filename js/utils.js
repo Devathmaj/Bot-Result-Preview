@@ -8,8 +8,17 @@ export function capitalize(str) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+export const UNCATEGORIZED = "Uncategorized";
+
+/* Upstream stores vendor as NULL for unclassified items while the facet
+ * list exposes them as "Uncategorized". Normalize once at the boundary
+ * so every consumer (counts, filters, pages) sees a consistent value. */
+export function normalizeEvent(event) {
+  if (!event || (event.vendor && String(event.vendor).trim())) return event;
+  return { ...event, vendor: UNCATEGORIZED };
+}
+
 const VENDOR_LABELS = {
-  uncategorized: "Other",
   aws: "AWS",
   suse: "SUSE",
 };
@@ -83,4 +92,12 @@ export function confidenceTier(confidence) {
   if (confidence >= 0.85) return { key: "high", label: "High", level: 3 };
   if (confidence >= 0.6) return { key: "moderate", label: "Moderate", level: 2 };
   return { key: "lower", label: "Lower", level: 1 };
+}
+
+export function countByVendor(events) {
+  const counts = {};
+  for (const e of events || []) {
+    if (e?.vendor) counts[e.vendor] = (counts[e.vendor] || 0) + 1;
+  }
+  return counts;
 }

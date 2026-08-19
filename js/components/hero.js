@@ -1,12 +1,13 @@
 import { ICONS } from "./icons.js";
 import { escapeHtml, vendorLabel, vendorSlug } from "../utils.js";
 
-export function renderHero(vendors) {
+export function renderHero(vendors, counts) {
   const chips = Array.isArray(vendors)
     ? vendors
+        .filter((v) => !counts || counts[v.vendor] > 0)
         .map(
           (v) => `
-            <a class="vendor-chip" href="/vendors/${encodeURIComponent(vendorSlug(v.vendor))}">${escapeHtml(vendorLabel(v.vendor))}</a>`
+            <a class="vendor-chip" href="/vendors/${encodeURIComponent(vendorSlug(v.vendor))}">${escapeHtml(vendorLabel(v.vendor))}${counts ? ` <span class="chip-count">${counts[v.vendor]}</span>` : ""}</a>`
         )
         .join("")
     : "";
