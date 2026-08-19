@@ -454,9 +454,9 @@ function onPaginationClick(e) {
     case "first":
       currentPage = 1;
       break;
-    case "window-forward":
-      pageWindowStart = Math.min(pageWindowStart + WINDOW_SIZE, Math.max(total, 1));
-      currentPage = Math.min(Math.max(pageWindowStart, 1), total || 1);
+    case "last":
+      currentPage = Math.max(total, 1);
+      pageWindowStart = Math.max(1, total - WINDOW_SIZE + 1);
       break;
     case "more":
       loadMore();

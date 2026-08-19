@@ -1,4 +1,4 @@
-﻿import { escapeHtml } from "../utils.js";
+import { escapeHtml } from "../utils.js";
 
 /* ── Set Up Notifications page ── */
 
@@ -42,7 +42,7 @@ export function renderNotificationsPage() {
 
   const header = document.createElement("header");
   header.className = "legal-header";
-  header.innerHTML = `<a href="#" class="legal-back">&larr; Back to vouchers</a><h1>Set Up Notifications</h1><p class="legal-last-updated">Instant voucher alerts on Discord or Telegram</p>`;
+  header.innerHTML = `<a href="/" class="legal-back">&larr; Back to vouchers</a><h1>Set Up Notifications</h1><p class="legal-last-updated">Instant voucher alerts on Discord or Telegram</p>`;
   page.appendChild(header);
 
   const intro = document.createElement("p");
@@ -72,10 +72,10 @@ export function renderNotificationsPage() {
     qrSrc: "assets/images/discord_bot.png",
     qrAlt: "QR code linking to the Discord bot invite",
     links: [
-      { href: "#discord/privacy", label: "Privacy Policy" },
-      { href: "#discord/terms", label: "Terms of Service" },
-      { href: "#discord/disclaimer", label: "Disclaimer" },
-      { href: "#discord/permissions", label: "Permissions" },
+      { href: "/#discord/privacy", label: "Privacy Policy" },
+      { href: "/#discord/terms", label: "Terms of Service" },
+      { href: "/#discord/disclaimer", label: "Disclaimer" },
+      { href: "/#discord/permissions", label: "Permissions" },
     ],
   });
   grid.appendChild(discord.firstElementChild);
@@ -98,9 +98,9 @@ export function renderNotificationsPage() {
     qrSrc: "assets/images/telegram_bot.jpeg",
     qrAlt: "QR code linking to the Telegram bot",
     links: [
-      { href: "#telegram/privacy", label: "Privacy Policy" },
-      { href: "#telegram/terms", label: "Terms of Service" },
-      { href: "#telegram/disclaimer", label: "Disclaimer" },
+      { href: "/#telegram/privacy", label: "Privacy Policy" },
+      { href: "/#telegram/terms", label: "Terms of Service" },
+      { href: "/#telegram/disclaimer", label: "Disclaimer" },
     ],
   });
   grid.appendChild(telegram.firstElementChild);

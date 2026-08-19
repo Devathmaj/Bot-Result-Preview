@@ -22,12 +22,16 @@ export function renderPaginationHtml({ currentPage, totalPages, windowStart, win
     html += btn(String(i), "goto", { page: i, active: i === currentPage, label: `Page ${i}` });
   }
 
-  html += btn("&#187;", "window-forward", {
-    disabled: windowEnd >= totalPages && !hasMore,
-    label: "Next pages",
+  html += btn("&#187;", "last", {
+    disabled: currentPage >= totalPages,
+    label: "Last page",
   });
-  html += btn("Next &rarr;", hasMore && currentPage >= totalPages ? "more" : "next", {
-    id: hasMore && currentPage >= totalPages ? "load-more-btn" : "",
+
+  const atEnd = currentPage >= totalPages;
+  const useMore = hasMore && atEnd;
+  html += btn("Next &rarr;", useMore ? "more" : "next", {
+    id: useMore ? "load-more-btn" : "",
+    disabled: !useMore && atEnd,
     label: "Next page",
   });
 

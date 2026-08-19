@@ -289,7 +289,7 @@ export function renderDisclaimerPage() {
 
 
 const NOTIFY_OPTIONS = {
-  backHref: "#notifications",
+  backHref: "/#notifications",
   backLabel: "Set Up Notifications",
   lastUpdated: BOT_LAST_UPDATED,
 };
@@ -433,7 +433,7 @@ export function renderDiscordTermsPage() {
       items: [
         {
           type: "html",
-          html: `Use of the bot is governed by the <a href="#discord/privacy">Privacy Policy</a>. You may delete your stored data at any time with <code class="cmd-chip">/delete</code>.`,
+          html: `Use of the bot is governed by the <a href="/#discord/privacy">Privacy Policy</a>. You may delete your stored data at any time with <code class="cmd-chip">/delete</code>.`,
         },
       ],
     },
@@ -595,7 +595,7 @@ export function renderDiscordPermissionsPage() {
         ]},
         {
           type: "html",
-          html: `See the <a href="#discord/privacy">Privacy Policy</a> and <a href="#discord/terms">Terms of Service</a> for more information.`,
+          html: `See the <a href="/#discord/privacy">Privacy Policy</a> and <a href="/#discord/terms">Terms of Service</a> for more information.`,
         },
       ],
     },
@@ -744,7 +744,7 @@ export function renderTelegramTermsPage() {
       items: [
         {
           type: "html",
-          html: `Use of the bot is governed by the <a href="#telegram/privacy">Privacy Policy</a>. You may delete your stored data at any time with <code class="cmd-chip">/stop</code>.`,
+          html: `Use of the bot is governed by the <a href="/#telegram/privacy">Privacy Policy</a>. You may delete your stored data at any time with <code class="cmd-chip">/stop</code>.`,
         },
       ],
     },
