@@ -1,12 +1,12 @@
 import { ICONS } from "./icons.js";
-import { escapeHtml, vendorLabel } from "../utils.js";
+import { escapeHtml, vendorLabel, vendorSlug } from "../utils.js";
 
 export function renderHero(vendors) {
   const chips = Array.isArray(vendors)
     ? vendors
         .map(
           (v) => `
-            <button type="button" class="vendor-chip" data-vendor="${escapeHtml(v.vendor)}">${escapeHtml(vendorLabel(v.vendor))}</button>`
+            <a class="vendor-chip" href="/vendors/${encodeURIComponent(vendorSlug(v.vendor))}">${escapeHtml(vendorLabel(v.vendor))}</a>`
         )
         .join("")
     : "";
@@ -26,8 +26,8 @@ export function renderHero(vendors) {
             type="text"
             class="search-input"
             name="search"
-            placeholder="Search listing titles&hellip;"
-            aria-label="Search listing titles"
+            placeholder="Search titles, summaries, vendors&hellip;"
+            aria-label="Search listings"
             autocomplete="off"
           />
           <button type="submit" class="btn btn-primary hero-search-btn">Search</button>

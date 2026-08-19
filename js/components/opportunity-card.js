@@ -1,23 +1,12 @@
-import { escapeHtml, vendorLabel, formatShortDate, hostOf, truncate } from "../utils.js";
-
-function aiAssessment(ai) {
-  if (!ai || typeof ai.confidence !== "number") return null;
-  if (ai.confidence >= 0.85) return { label: "High", level: 3 };
-  if (ai.confidence >= 0.6) return { label: "Moderate", level: 2 };
-  return { label: "Low", level: 1 };
-}
-
-function renderAiFlag(ai) {
-  const a = aiAssessment(ai);
-  if (!a) return "";
-  const dots = [1, 2, 3].map((i) => `<span class="ai-dot${i <= a.level ? " on" : ""}"></span>`).join("");
-  return `
-    <span class="ai-flag" title="Confidence of the automated analysis that identified this listing — not a verification of the offer.">
-      <span class="ai-dots" aria-hidden="true">${dots}</span>
-      <span class="ai-label">AI &middot; ${a.label}</span>
-    </span>
-  `;
-}
+import {
+  escapeHtml,
+  vendorLabel,
+  vendorSlug,
+  formatShortDate,
+  hostOf,
+  truncate,
+  confidenceTier,
+} from "../utils.js";
 
 export function generateCardSummary(item) {
   const ai = item.ai_result;
@@ -27,6 +16,18 @@ export function generateCardSummary(item) {
   if (ai.discount) return `Save ${ai.discount}${vendor ? ` on${vendor}` : ""}.`;
   if (ai.promotion_name) return `${ai.promotion_name}.`;
   return "";
+}
+
+export function renderAiFlag(ai) {
+  const tier = confidenceTier(ai?.confidence);
+  if (!tier) return "";
+  const dots = [1, 2, 3].map((i) => `<span class="ai-dot${i <= tier.level ? " on" : ""}"></span>`).join("");
+  return `
+    <span class="ai-flag" title="Confidence of the automated analysis that identified this listing — not a verification of the offer.">
+      <span class="ai-dots" aria-hidden="true">${dots}</span>
+      <span class="ai-label">AI &middot; ${tier.label}</span>
+    </span>
+  `;
 }
 
 function renderTags(ai) {
@@ -49,6 +50,8 @@ function renderTags(ai) {
 
 export function renderOpportunityCard(item) {
   const url = item.url || "#";
+  const detailUrl = `/opportunities/${encodeURIComponent(item.id)}`;
+  const vendorHref = item.vendor ? `/vendors/${encodeURIComponent(vendorSlug(item.vendor))}` : null;
   const host = hostOf(url);
   const listed = formatShortDate(item.created_at);
   const author = item.author ? truncate(item.author, 48) : "";
@@ -58,12 +61,12 @@ export function renderOpportunityCard(item) {
   return `
     <article class="opportunity-card">
       <div class="card-top">
-        <span class="vendor-chip-static">${escapeHtml(vendorLabel(item.vendor))}</span>
+        ${vendorHref ? `<a class="vendor-chip-static" href="${vendorHref}">${escapeHtml(vendorLabel(item.vendor))}</a>` : `<span class="vendor-chip-static">${escapeHtml(vendorLabel(item.vendor))}</span>`}
         ${discount ? `<span class="discount-chip">${escapeHtml(discount)}</span>` : ""}
         ${renderAiFlag(item.ai_result)}
       </div>
       <h3 class="card-title">
-        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || "Untitled")}</a>
+        <a href="${escapeHtml(detailUrl)}">${escapeHtml(item.title || "Untitled")}</a>
       </h3>
       ${summary ? `<p class="card-summary">${escapeHtml(summary)}</p>` : ""}
       ${renderTags(item.ai_result)}

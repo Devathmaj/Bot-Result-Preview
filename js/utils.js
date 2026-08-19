@@ -56,3 +56,30 @@ export function truncate(text, length) {
   if (text.length <= length) return text;
   return text.slice(0, length).trimEnd() + "…";
 }
+
+export function vendorSlug(vendor) {
+  if (!vendor) return "";
+  return String(vendor).trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+export function matchesQuery(item, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const ai = item.ai_result || {};
+  const fields = [
+    item.title,
+    item.summary,
+    item.vendor,
+    item.vendor ? vendorLabel(item.vendor) : "",
+    item.author,
+    ai.promotion_name,
+  ];
+  return fields.some((f) => typeof f === "string" && f.toLowerCase().includes(q));
+}
+
+export function confidenceTier(confidence) {
+  if (typeof confidence !== "number") return null;
+  if (confidence >= 0.85) return { key: "high", label: "High", level: 3 };
+  if (confidence >= 0.6) return { key: "moderate", label: "Moderate", level: 2 };
+  return { key: "lower", label: "Lower", level: 1 };
+}

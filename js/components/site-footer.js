@@ -1,21 +1,21 @@
-export function renderSiteFooter() {
+﻿export function renderSiteFooter() {
   const year = new Date().getFullYear();
 
   return `
     <footer class="site-footer">
       <div class="container">
         <div class="footer-links">
-          <a href="#">Home</a>
+          <a href="/">Home</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
-          <a href="#notifications">Notifications</a>
+          <a href="/#notifications">Notifications</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
-          <a href="#about">About</a>
+          <a href="/#about">About</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
-          <a href="#privacy">Privacy Policy</a>
+          <a href="/#privacy">Privacy Policy</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
-          <a href="#terms">Terms of Use</a>
+          <a href="/#terms">Terms of Use</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
-          <a href="#disclaimer">Disclaimer</a>
+          <a href="/#disclaimer">Disclaimer</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
           <a href="https://github.com/Devathmaj/VoucherBot" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>

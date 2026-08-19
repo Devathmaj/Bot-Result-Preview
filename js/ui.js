@@ -1,13 +1,22 @@
 import { getEvents, getVendors } from "./api.js";
-import { setSearch, setVendor, setSort, getFilters, clearSearch } from "./app.js";
-import { initTheme, toggleTheme, getCurrentTheme } from "./theme.js";
-import { ICONS } from "./components/icons.js";
-import { renderSiteHeader } from "./components/site-header.js";
+import {
+  setSearch,
+  setVendor,
+  setSort,
+  setDiscovered,
+  setFlag,
+  getFilters,
+  readFiltersFromUrl,
+  filtersToUrl,
+} from "./app.js";
+import { initTheme } from "./theme.js";
+import { matchesQuery, confidenceTier } from "./utils.js";
+import { renderSiteHeader, bindThemeToggleBehavior } from "./components/site-header.js";
 import { renderSiteFooter } from "./components/site-footer.js";
 import { renderHero } from "./components/hero.js";
 import { renderFilterBar } from "./components/filter-bar.js";
 import { renderOpportunityCard } from "./components/opportunity-card.js";
-import { renderPaginationHtml, paginationState, isFilterActive } from "./components/pagination.js";
+import { renderPaginationHtml, paginationState } from "./components/pagination.js";
 import { renderSkeletonGrid, renderEmptyState, renderErrorState, renderResultsCount } from "./components/feed-state.js";
 import { renderHowItWorks } from "./components/how-it-works.js";
 import { renderNotificationCta } from "./components/notification-cta.js";
@@ -50,7 +59,7 @@ function sortByCreatedAt(list) {
 
 function cacheKey() {
   const f = getFilters();
-  return `${f.search}|${f.vendor}|${f.sort}`;
+  return `${f.vendor}|${f.sort}|${f.discovered}|${f.flag}`;
 }
 
 function saveCache() {
@@ -63,6 +72,38 @@ function htmlToEl(html) {
   return t.content.firstElementChild;
 }
 
+function visibleEvents() {
+  const f = getFilters();
+  let list = events;
+
+  if (f.search) {
+    list = list.filter((e) => matchesQuery(e, f.search));
+  }
+
+  if (f.discovered !== "any") {
+    const days = f.discovered === "7d" ? 7 : 30;
+    const cutoff = Date.now() - days * 86400000;
+    list = list.filter((e) => e.created_at && Date.parse(e.created_at) >= cutoff);
+  }
+
+  if (f.flag !== "any") {
+    list = list.filter((e) => confidenceTier(e.ai_result?.confidence)?.key === f.flag);
+  }
+
+  return list;
+}
+
+function isLocalFilterActive() {
+  const f = getFilters();
+  return Boolean(f.search) || f.discovered !== "any" || f.flag !== "any" || f.vendor !== "all";
+}
+
+function syncUrlToFilters() {
+  try {
+    history.replaceState(null, "", filtersToUrl(getFilters()));
+  } catch (e) {}
+}
+
 /* ── Home shell ── */
 
 function homeShellHtml(vendors) {
@@ -71,7 +112,7 @@ function homeShellHtml(vendors) {
     ${renderHero(vendors)}
     <div class="container">
       <div data-filter-slot></div>
-      <section class="feed-section" id="feed" aria-label="Latest certification opportunities">
+      <section class="feed-section" id="feed" aria-label="Latest certification opportunities" tabindex="-1">
         <div class="feed-head">
           <h2 class="section-heading">Latest opportunities</h2>
           <span class="results-count" id="results-count" aria-live="polite"></span>
@@ -95,81 +136,77 @@ function buildHomeShell(vendors) {
 }
 
 function bindHomeShell() {
-  bindThemeToggle();
-
-  const form = document.querySelector("[data-search-form]");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const value = form.querySelector(".search-input").value;
-      setSearch(value);
-      window.dispatchEvent(new CustomEvent("filterchange"));
-    });
-  }
-
-  const chips = document.querySelector(".vendor-chips");
-  if (chips) {
-    chips.addEventListener("click", (e) => {
-      const chip = e.target.closest(".vendor-chip");
-      if (!chip) return;
-      setVendor(chip.dataset.vendor);
-      syncFilterControls();
-    });
-  }
-
-  const bar = document.querySelector("[data-filter-bar]");
-  if (bar) {
-    bar.querySelector("[data-filter-vendor]").addEventListener("change", (e) => {
-      setVendor(e.target.value);
-      syncFilterControls();
-    });
-    bar.querySelector("[data-filter-sort]").addEventListener("change", (e) => setSort(e.target.value));
-    bar.querySelector("[data-filter-clear]").addEventListener("click", clearAllFilters);
-  }
-
+  bindThemeToggleBehavior();
+  bindSearchForm();
+  bindFilterBar();
   document.getElementById("pagination").addEventListener("click", onPaginationClick);
 
-  const feedStatus = document.getElementById("feed-status");
-  feedStatus.addEventListener("click", (e) => {
+  document.getElementById("feed-status").addEventListener("click", (e) => {
     if (e.target.closest("[data-empty-clear]")) clearAllFilters();
     if (e.target.closest("#retry-btn")) loadFeed(true);
   });
 }
 
+function bindSearchForm() {
+  const form = document.querySelector("[data-search-form]");
+  if (!form) return;
+  const input = form.querySelector(".search-input");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    setSearch(input.value);
+    window.dispatchEvent(new CustomEvent("filterchange"));
+  });
+  let debounceTimer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const value = input.value;
+    debounceTimer = setTimeout(() => {
+      if (getFilters().search === value) return;
+      setSearch(value);
+      window.dispatchEvent(new CustomEvent("filterchange"));
+    }, 250);
+  });
+}
+
+function bindFilterBar() {
+  const bar = document.querySelector("[data-filter-bar]");
+  if (!bar) return;
+  bar.querySelector("[data-filter-vendor]").addEventListener("change", (e) => setVendor(e.target.value));
+  bar.querySelector("[data-filter-discovered]").addEventListener("change", (e) => setDiscovered(e.target.value));
+  bar.querySelector("[data-filter-flag]").addEventListener("change", (e) => setFlag(e.target.value));
+  bar.querySelector("[data-filter-sort]").addEventListener("change", (e) => setSort(e.target.value));
+  bar.querySelector("[data-filter-clear]").addEventListener("click", clearAllFilters);
+}
+
 function syncFilterControls() {
-  const select = document.querySelector("[data-filter-vendor]");
-  if (select) select.value = getFilters().vendor;
+  const f = getFilters();
+  const map = {
+    "[data-filter-vendor]": f.vendor,
+    "[data-filter-discovered]": f.discovered,
+    "[data-filter-flag]": f.flag,
+    "[data-filter-sort]": f.sort,
+  };
+  for (const [sel2, value] of Object.entries(map)) {
+    const el = document.querySelector(sel2);
+    if (el) el.value = value;
+  }
   const search = document.querySelector("[data-search-form] .search-input");
-  if (search) search.value = getFilters().search;
+  if (search) search.value = f.search;
   updateClearVisibility();
 }
 
 function updateClearVisibility() {
   const clearBtn = document.querySelector("[data-filter-clear]");
-  if (clearBtn) clearBtn.classList.toggle("hidden", !isFilterActive());
+  if (clearBtn) clearBtn.classList.toggle("hidden", !isLocalFilterActive());
 }
 
 function clearAllFilters() {
   setSearch("");
   setVendor("all");
-  syncFilterControls();
+  setDiscovered("any");
+  setFlag("any");
+  setSort("newest");
   window.dispatchEvent(new CustomEvent("filterchange"));
-}
-
-/* ── Theme toggle ── */
-
-function themeIconFor(theme) {
-  return theme === "dark" ? ICONS.sun : ICONS.moon;
-}
-
-function bindThemeToggle() {
-  const btn = document.querySelector("[data-theme-toggle]");
-  if (!btn) return;
-  btn.innerHTML = themeIconFor(getCurrentTheme());
-  btn.addEventListener("click", () => {
-    toggleTheme();
-    btn.innerHTML = themeIconFor(getCurrentTheme());
-  });
 }
 
 /* ── Feed painting ── */
@@ -182,29 +219,38 @@ function paintSkeletons() {
 }
 
 function paintError(message) {
-  const feed = document.getElementById("feed");
-  feed.removeAttribute("aria-busy");
+  document.getElementById("feed").removeAttribute("aria-busy");
   document.getElementById("results-count").textContent = "";
   document.getElementById("pagination").innerHTML = "";
   document.getElementById("feed-status").innerHTML = renderErrorState(message);
 }
 
 function paintFeed() {
-  const grid = document.createElement("div");
-  grid.className = "card-grid";
+  const list = visibleEvents();
+
+  document.getElementById("feed").removeAttribute("aria-busy");
+
+  const totalPages = Math.ceil(list.length / CLIENT_SIZE);
+  if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
 
   const start = (currentPage - 1) * CLIENT_SIZE;
-  const pageEvents = events.slice(start, start + CLIENT_SIZE);
+  const pageEvents = list.slice(start, start + CLIENT_SIZE);
+
+  document.getElementById("results-count").textContent =
+    list.length === events.length
+      ? renderResultsCount(list.length)
+      : `${list.length} of ${events.length} listings`;
 
   if (!pageEvents.length) {
-    document.getElementById("feed").removeAttribute("aria-busy");
-    document.getElementById("results-count").textContent = renderResultsCount(events.length);
     document.getElementById("pagination").innerHTML = "";
-    document.getElementById("feed-status").innerHTML = events.length ? "" : renderEmptyState();
+    document.getElementById("feed-status").innerHTML = renderEmptyState();
     updateClearVisibility();
+    syncUrlToFilters();
     return;
   }
 
+  const grid = document.createElement("div");
+  grid.className = "card-grid";
   const fragment = document.createDocumentFragment();
   for (const event of pageEvents) {
     fragment.appendChild(htmlToEl(renderOpportunityCard(event)));
@@ -215,12 +261,10 @@ function paintFeed() {
   status.innerHTML = "";
   status.appendChild(grid);
 
-  document.getElementById("feed").removeAttribute("aria-busy");
-  document.getElementById("results-count").textContent = renderResultsCount(events.length);
-
-  const state = paginationState(events, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE);
+  const state = paginationState(list.length, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE);
   document.getElementById("pagination").innerHTML = renderPaginationHtml(state);
   updateClearVisibility();
+  syncUrlToFilters();
 }
 
 /* ── Data fetching ── */
@@ -246,7 +290,8 @@ async function loadFeed(reset) {
   try {
     const filters = getFilters();
     const { events: newEvents, nextCursor: nc } = await getEvents({
-      ...filters,
+      vendor: filters.vendor,
+      sort: filters.sort,
       cursor: reset ? null : undefined,
     });
 
@@ -279,11 +324,16 @@ async function loadMore() {
 
   try {
     const filters = getFilters();
-    const { events: newEvents, nextCursor: nc } = await getEvents({ ...filters, cursor: nextCursor });
+    const { events: newEvents, nextCursor: nc } = await getEvents({
+      vendor: filters.vendor,
+      sort: filters.sort,
+      cursor: nextCursor,
+    });
 
     events = sortByCreatedAt(events.concat(newEvents));
     nextCursor = nc;
-    currentPage = Math.ceil(events.length / CLIENT_SIZE);
+    const total = visibleEvents().length;
+    currentPage = Math.max(1, Math.ceil(total / CLIENT_SIZE));
     pageWindowStart = Math.floor((currentPage - 1) / WINDOW_SIZE) * WINDOW_SIZE + 1;
     saveCache();
 
@@ -333,8 +383,7 @@ function onPaginationClick(e) {
   if (!btn || btn.disabled) return;
 
   const action = btn.dataset.pageAction;
-  const state = paginationState(events, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE);
-  const total = state.totalPages;
+  const total = Math.ceil(visibleEvents().length / CLIENT_SIZE);
 
   switch (action) {
     case "goto":
@@ -396,7 +445,7 @@ function renderLegalRoute(hash) {
   app.appendChild(htmlToEl(renderSiteHeader()));
   app.appendChild(htmlToEl(`<main class="container">${renderFn()}</main>`));
   app.appendChild(htmlToEl(renderSiteFooter()));
-  bindThemeToggle();
+  bindThemeToggleBehavior();
   return true;
 }
 
@@ -404,11 +453,10 @@ function isHomeRendered() {
   return Boolean(document.getElementById("feed"));
 }
 
-async function navigateHome() {
-  if (!isHomeRendered()) {
-    buildHomeShell(null);
-    populateVendorData();
-  }
+async function ensureHomeRendered() {
+  if (isHomeRendered()) return;
+  buildHomeShell(null);
+  populateVendorData();
   await loadFeed(true);
 }
 
@@ -419,15 +467,20 @@ async function populateVendorData() {
   vendorsLoaded = true;
   try {
     const vendors = await getVendors();
-    const slot = document.querySelector(".vendor-chips");
-    const select = document.querySelector("[data-filter-vendor]");
-    if (slot && !slot.children.length) {
-      for (const v of vendors) {
-        const chip = htmlToEl(`<button type="button" class="vendor-chip" data-vendor="${v.vendor}"></button>`);
-        chip.textContent = v.vendor.replace(/\b\w/g, (c) => c.toUpperCase());
-        slot.appendChild(chip);
+
+    if (!document.querySelector(".vendor-chips")) {
+      const hero = document.querySelector(".hero");
+      if (hero) {
+        const searchValue = document.querySelector("[data-search-form] .search-input")?.value ?? "";
+        const fresh = htmlToEl(renderHero(vendors));
+        hero.replaceWith(fresh);
+        const input = fresh.querySelector(".search-input");
+        if (input) input.value = searchValue;
+        bindSearchForm();
       }
     }
+
+    const select = document.querySelector("[data-filter-vendor]");
     if (select && select.options.length <= 1) {
       for (const v of vendors) {
         const opt = document.createElement("option");
@@ -443,10 +496,10 @@ async function populateVendorData() {
   }
 }
 
-window.addEventListener("hashchange", () => {
+window.addEventListener("hashchange", async () => {
   const hash = location.hash.replace("#", "");
   if (!hash || hash === "home") {
-    navigateHome();
+    await navigateHome();
     window.scrollTo(0, 0);
     return;
   }
@@ -455,6 +508,7 @@ window.addEventListener("hashchange", () => {
     return;
   }
   if (hash === "how-it-works") {
+    await ensureHomeRendered();
     document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
   }
 });
@@ -474,6 +528,7 @@ function enhanceServerRendered(initial) {
   nextCursor = initial.nextCursor ?? null;
   currentPage = 1;
   pageWindowStart = 1;
+  readFiltersFromUrl(location.search);
   saveCache();
 
   swapNode(".site-header", renderSiteHeader());
@@ -482,6 +537,11 @@ function enhanceServerRendered(initial) {
 
   bindHomeShell();
   paintFeed();
+}
+
+async function navigateHome() {
+  await ensureHomeRendered();
+  await loadFeed(true);
 }
 
 /* ── Bootstrap ── */
@@ -506,6 +566,7 @@ async function init() {
     return;
   }
 
+  readFiltersFromUrl(location.search);
   buildHomeShell(null);
   paintSkeletons();
   populateVendorData();

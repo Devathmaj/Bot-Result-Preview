@@ -1,5 +1,3 @@
-import { getFilters } from "../app.js";
-
 export function renderPaginationHtml({ currentPage, totalPages, windowStart, windowEnd, hasMore }) {
   if (totalPages <= 1 && !hasMore) return "";
 
@@ -35,15 +33,10 @@ export function renderPaginationHtml({ currentPage, totalPages, windowStart, win
   return html;
 }
 
-export function paginationState(events, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE) {
-  const totalPages = Math.ceil(events.length / CLIENT_SIZE);
+export function paginationState(totalCount, nextCursor, currentPage, pageWindowStart, CLIENT_SIZE, WINDOW_SIZE) {
+  const totalPages = Math.ceil(totalCount / CLIENT_SIZE);
   const hasMore = nextCursor !== null;
   const windowStart = Math.max(1, Math.min(pageWindowStart, totalPages));
   const windowEnd = Math.min(windowStart + WINDOW_SIZE - 1, totalPages);
   return { currentPage, totalPages, hasMore, windowStart, windowEnd };
-}
-
-export function isFilterActive() {
-  const f = getFilters();
-  return Boolean(f.search) || f.vendor !== "all";
 }
