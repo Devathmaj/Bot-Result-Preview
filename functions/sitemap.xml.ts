@@ -1,4 +1,4 @@
-import { fetchUpstreamJson, serveWithCache, SITE_URL } from "./_shared/layout.ts";
+import { fetchUpstreamJson, fetchAllOpportunities, serveWithCache, SITE_URL } from "./_shared/layout.ts";
 import { vendorSlug } from "../js/utils.js";
 
 /* ── Dynamic sitemap ──
@@ -17,10 +17,9 @@ export async function onRequestGet({ request, env }) {
       const urls = [{ loc: `${SITE_URL}/`, changefreq: "hourly", priority: "1.0" }];
 
       try {
-        const [vendorsResult, eventsResult] = await Promise.all([
-          fetchUpstreamJson(env, "?mode=vendors"),
-          fetchUpstreamJson(env, "?limit=100"),
-        ]);
+        const vendorsPromise = fetchUpstreamJson(env, "?mode=vendors");
+        const feedPromise = fetchAllOpportunities(env, {});
+        const [vendorsResult, eventsResult] = await Promise.all([vendorsPromise, feedPromise]);
 
         for (const v of vendorsResult.data) {
           urls.push({
@@ -30,7 +29,7 @@ export async function onRequestGet({ request, env }) {
           });
         }
 
-        for (const event of eventsResult.data) {
+        for (const event of eventsResult.events) {
           urls.push({
             loc: `${SITE_URL}/opportunities/${event.id}`,
             lastmod: event.created_at ? event.created_at.slice(0, 10) : undefined,

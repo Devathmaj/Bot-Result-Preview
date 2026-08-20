@@ -4,33 +4,33 @@ import { renderHowItWorks } from "../../js/components/how-it-works.js";
 import { renderNotificationCta } from "../../js/components/notification-cta.js";
 import { renderVendorPage } from "../../js/components/vendor-page.js";
 import { renderMessagePage } from "../../js/components/page-shells.js";
-import { vendorLabel, vendorSlug, normalizeEvent } from "../../js/utils.js";
+import { vendorLabel, vendorSlug } from "../../js/utils.js";
 import {
   htmlHeaders,
   jsonLdScript,
   breadcrumbLd,
   fetchUpstreamJson,
+  fetchAllOpportunities,
   serveWithCache,
   sortByCreatedDesc,
   renderDocument,
 } from "../_shared/layout.ts";
+import { SSR_FULL_FEED_MAX, SSR_CARD_LIMIT } from "../../js/config.js";
 
 /* ── Server-rendered vendor listing page ──
  * /vendors/{vendor-slug}
  * The slug is validated against the live vendors list; listings are
  * fetched through the existing Supabase Edge Function (?vendor=). */
 
-const UPSTREAM_LIMIT = 100;
-
 export async function onRequestGet({ request, env, params }) {
   return serveWithCache(request, async () => {
     let vendorsResult;
     let eventsResult;
     try {
-      [vendorsResult, eventsResult] = await Promise.all([
-        fetchUpstreamJson(env, "?mode=vendors"),
-        fetchUpstreamJson(env, `?limit=${UPSTREAM_LIMIT}`),
-      ]);
+      const vendorsPromise = fetchUpstreamJson(env, "?mode=vendors");
+      const feed = await fetchAllOpportunities(env, {});
+      vendorsResult = await vendorsPromise;
+      eventsResult = { data: feed.events };
     } catch (err) {
       return new Response(
         renderDocument({
@@ -65,7 +65,9 @@ export async function onRequestGet({ request, env, params }) {
       );
     }
 
-    const events = sortByCreatedDesc(eventsResult.data.map(normalizeEvent).filter((e) => e.vendor === vendor));
+    const allForVendor = sortByCreatedDesc(eventsResult.data.filter((e) => e.vendor === vendor));
+    const renderCount = allForVendor.length <= SSR_FULL_FEED_MAX ? allForVendor.length : Math.min(SSR_CARD_LIMIT, allForVendor.length);
+    const events = allForVendor.slice(0, renderCount);
     const name = vendorLabel(vendor);
     const vendorPath = `/vendors/${encodeURIComponent(vendorSlug(vendor))}`;
 

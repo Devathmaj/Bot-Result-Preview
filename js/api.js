@@ -1,13 +1,14 @@
 import { normalizeEvent } from "./utils.js";
+import { PAGE_SIZE } from "./config.js";
 
 const API_BASE = "/v1/api";
 
-export async function getEvents({ search, vendor, sort, limit = 100, cursor } = {}) {
+export async function getEvents({ search, vendor, sort, limit = PAGE_SIZE, cursor } = {}) {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (vendor && vendor !== "all") params.set("vendor", vendor);
   if (sort && sort !== "newest") params.set("sort", sort);
-  if (limit !== 100) params.set("limit", limit);
+  params.set("limit", String(limit));
   if (cursor) params.set("cursor", cursor);
 
   const response = await fetch(`${API_BASE}/events?${params}`);

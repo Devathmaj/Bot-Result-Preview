@@ -23,6 +23,9 @@ const HEAD_ASSETS = `
 
 export { HEAD_ASSETS };
 
+/* Note: Cloudflare's server-side Cache API ignores stale-while-revalidate —
+ * that directive only benefits browser back/forward navigations. At the
+ * edge, objects are fresh until s-maxage elapses, then a plain miss. */
 export function htmlHeaders(ttl = 300) {
   return {
     "Content-Type": "text/html; charset=utf-8",
@@ -104,8 +107,17 @@ export function renderDocument(opts: DocumentOptions) {
 </html>`;
 }
 
+/** Build an upstream URL regardless of whether the caller included a
+ * leading "?" and whether the configured base URL already carries one. */
+export function upstreamUrl(env: any, queryString: string): string {
+  const base = env.SUPABASE_FUNCTION_URL;
+  const qs = queryString.startsWith("?") ? queryString.slice(1) : queryString;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}${qs}`;
+}
+
 export async function fetchUpstreamJson(env: any, queryString: string): Promise<any> {
-  const response = await fetch(env.SUPABASE_FUNCTION_URL + queryString, {
+  const response = await fetch(upstreamUrl(env, queryString), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -119,12 +131,17 @@ export async function fetchUpstreamJson(env: any, queryString: string): Promise<
   return body;
 }
 
-export async function serveWithCache(request: Request, render: () => Response, ttl = 300): Promise<Response> {
+export async function serveWithCache(
+  request: Request,
+  render: () => Response | Promise<Response>,
+  ttl = 300
+): Promise<Response> {
   const cacheKey = new Request(request.url);
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
 
-  const response = render();
+  // Await regardless of whether the route handler is synchronous or async.
+  const response = await render();
   if (response.status === 200) {
     await caches.default.put(cacheKey, response.clone());
   }
@@ -137,4 +154,100 @@ export function createdAtMs(event: any): number {
 
 export function sortByCreatedDesc(list: any[]): any[] {
   return [...list].sort((a, b) => createdAtMs(b) - createdAtMs(a));
+}
+
+/* ── Dataset assembly ──
+ * The upstream clamps every page to 100 rows, so datasets larger than
+ * PAGE_SIZE are assembled through cursor pagination. All limits come
+ * from js/config.js — no route may hardcode its own. */
+
+import { PAGE_SIZE, MAX_UPSTREAM_PAGES, DETAIL_RELATED_TARGET } from "../../js/config.js";
+import { normalizeEvent } from "../../js/utils.js";
+
+export async function fetchUpstreamPage(env: any, queryString: string): Promise<any> {
+  const body = await fetchUpstreamJson(env, queryString);
+  body.data = body.data.map(normalizeEvent);
+  return body;
+}
+
+/** Assemble the opportunity dataset through cursor pagination.
+ * Returns everything up to MAX_UPSTREAM_PAGES × PAGE_SIZE rows, plus a
+ * `complete` flag and the boundary cursor if the safety caps stopped
+ * the assembly early. */
+export async function fetchAllOpportunities(
+  env: any,
+  opts: { vendor?: string; collectCap?: number; onPage?: (pageEvents: any[]) => void } = {}
+): Promise<{ events: any[]; complete: boolean; pages: number; boundaryCursor: string | null }> {
+  const events: any[] = [];
+  let cursor: string | null = null;
+  let pages = 0;
+
+  do {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+    if (opts.vendor && opts.vendor !== "all") params.set("vendor", opts.vendor);
+    if (cursor) params.set("cursor", cursor);
+
+    const body = await fetchUpstreamJson(env, params.toString());
+    const page = body.data.map(normalizeEvent);
+    events.push(...page);
+    if (opts.onPage) opts.onPage(page);
+
+    cursor = body.next_cursor ?? null;
+    pages++;
+  } while (
+    cursor &&
+    pages < MAX_UPSTREAM_PAGES &&
+    (opts.collectCap === undefined || events.length < opts.collectCap)
+  );
+
+  return { events, complete: cursor === null, pages, boundaryCursor: cursor };
+}
+
+/* ── Why there is no pre-upstream existence guard ──
+ * A cached id-set could reject fabricated ids cheaply, but any cached
+ * membership view lags upstream: brand-new listings would be falsely
+ * rejected until that cache expired, violating the hard rule that valid
+ * ids must never 404. With no upstream invalidation feed available,
+ * only structural validation happens in the route; cost control comes
+ * from early-exit scanning instead. */
+
+/** Locate one opportunity (+ up to DETAIL_RELATED_TARGET same-vendor
+ * peers) with early exit. Isolates today's list-scan lookup behind a
+ * single seam: swap in a future single-item endpoint here without
+ * touching any route handler. */
+export async function findOpportunityById(
+  env: any,
+  id: number
+): Promise<{ status: "found" | "not-found" | "unavailable"; item?: any; related?: any[] }> {
+  // Slow path: walk pages until the id appears (early exit), buffering
+  // scanned rows so same-vendor related links stay high-quality.
+  const scannedPages: any[][] = [];
+  let cursor: string | null = null;
+  let pages = 0;
+  let found = false;
+
+  try {
+    do {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (cursor) params.set("cursor", cursor);
+      const body = await fetchUpstreamJson(env, params.toString());
+      const page = body.data.map(normalizeEvent);
+      scannedPages.push(page);
+      if (page.some((e) => e.id === id)) found = true;
+
+      cursor = body.next_cursor ?? null;
+      pages++;
+    } while (cursor && pages < MAX_UPSTREAM_PAGES && !found);
+
+    if (!found) return { status: "not-found" };
+
+    const flat = scannedPages.flat();
+    const item = flat.find((e) => e.id === id)!;
+    const related = item.vendor
+      ? flat.filter((e) => e.id !== id && e.vendor === item.vendor).slice(0, DETAIL_RELATED_TARGET)
+      : [];
+    return { status: "found", item, related };
+  } catch (err) {
+    return { status: "unavailable" };
+  }
 }

@@ -8,7 +8,7 @@ import {
   htmlHeaders,
   jsonLdScript,
   breadcrumbLd,
-  fetchUpstreamJson,
+  findOpportunityById,
   serveWithCache,
   renderDocument,
 } from "../_shared/layout.ts";
@@ -19,8 +19,6 @@ import {
  * from the existing Supabase Edge Function via the same secrets; there
  * is no single-item endpoint, so the current listing set is fetched
  * and the requested id is selected server-side. */
-
-const UPSTREAM_LIMIT = 100;
 
 function notFound() {
   return new Response(
@@ -43,33 +41,28 @@ export async function onRequestGet({ request, env, params }) {
     const id = Number(rawId);
     if (!rawId || !Number.isInteger(id) || id <= 0) return notFound();
 
-    let data;
-    try {
-      data = await fetchUpstreamJson(env, `?limit=${UPSTREAM_LIMIT}`);
-    } catch (err) {
-      return new Response(
-        renderDocument({
-          path: request.url ? new URL(request.url).pathname : "/opportunities",
-          title: "Listing unavailable — VoucherBot",
-          robots: false,
-          body:
-            renderSiteHeader() +
-            renderMessagePage("Listing unavailable", "<p>The listing service did not respond. Please try again shortly.</p>") +
-            renderSiteFooter(),
-        }),
-        { status: 503, headers: htmlHeaders() }
-      );
-    }
+    const result = await findOpportunityById(env, id);
+  if (result.status === "unavailable") {
+    return new Response(
+      renderDocument({
+        path: request.url ? new URL(request.url).pathname : "/opportunities",
+        title: "Listing unavailable — VoucherBot",
+        robots: false,
+        body:
+          renderSiteHeader() +
+          renderMessagePage("Listing unavailable", "<p>The listing service did not respond. Please try again shortly.</p>") +
+          renderSiteFooter(),
+      }),
+      { status: 503, headers: htmlHeaders() }
+    );
+  }
 
-    const allEvents = data.data.map(normalizeEvent);
-    const item = allEvents.find((e) => e.id === id);
-    if (!item) return notFound();
+  if (result.status === "not-found") return notFound();
 
-    const related = item.vendor
-      ? allEvents.filter((e) => e.id !== item.id && e.vendor === item.vendor).slice(0, 3)
-      : [];
+  const item = result.item;
+  const related = result.related || [];
 
-    const summaryText = (item.summary || item.ai_result?.promotion_name || item.title || "Certification opportunity listing").slice(0, 155);
+  const summaryText = (item.summary || item.ai_result?.promotion_name || item.title || "Certification opportunity listing").slice(0, 155);
 
     const crumbs = [
       { name: "Home", path: "/" },

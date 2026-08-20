@@ -12,6 +12,7 @@ import {
 } from "./app.js";
 import { initTheme } from "./theme.js";
 import { matchesQuery, confidenceTier, countByVendor } from "./utils.js";
+import { PAGE_SIZE } from "./config.js";
 import { renderSiteHeader, bindThemeToggleBehavior } from "./components/site-header.js";
 import { renderSiteFooter } from "./components/site-footer.js";
 import { renderHero } from "./components/hero.js";
@@ -308,6 +309,40 @@ function onFiltersChanged() {
 
 window.addEventListener("filterchange", onFiltersChanged);
 
+/* ── Completeness sweep ──
+ * When the hydration payload was capped server-side (large datasets),
+ * pull remaining cursor pages in the background so local search,
+ * filters, and sorting stay complete over the whole dataset.
+ * Aborts if the active filter combination changes mid-sweep. */
+
+let sweeping = false;
+
+async function ensureCompleteData(startKey) {
+  if (sweeping || !nextCursor) return;
+  sweeping = true;
+  try {
+    while (nextCursor && cacheKey() === startKey) {
+      const { events: more, nextCursor: nc } = await getEvents({
+        vendor: getFilters().vendor,
+        limit: PAGE_SIZE,
+        cursor: nextCursor,
+      });
+      if (cacheKey() !== startKey) break;
+      const seen = new Set(events.map((e) => e.id));
+      const fresh = more.filter((m) => !seen.has(m.id));
+      events = events.concat(fresh);
+      nextCursor = nc;
+      saveCache();
+      paintFeed();
+      if (!nc) break;
+    }
+  } catch (err) {
+    console.warn("Background listing sweep interrupted:", err);
+  } finally {
+    sweeping = false;
+  }
+}
+
 /* ── Data fetching ── */
 
 async function loadFeed(reset) {
@@ -326,6 +361,7 @@ async function loadFeed(reset) {
       pageWindowStart = 1;
       paintFeed();
       isFetching = false;
+      if (nextCursor) ensureCompleteData(cacheKey());
       return;
     }
     paintSkeletons();
@@ -344,6 +380,7 @@ async function loadFeed(reset) {
     const { events: newEvents, nextCursor: nc } = await getEvents({
       vendor: vendorParam,
       sort: filters.sort,
+      limit: PAGE_SIZE,
       cursor: reset ? null : undefined,
     });
 
@@ -355,6 +392,7 @@ async function loadFeed(reset) {
     }
     saveCache();
     paintFeed();
+    if (reset && nextCursor) ensureCompleteData(cacheKey());
   } catch (err) {
     console.error("Failed to fetch listings:", err);
     if (reset) paintError("Failed to load vouchers. Please check your connection and try again.");
@@ -383,6 +421,7 @@ async function loadMore() {
     const { events: newEvents, nextCursor: nc } = await getEvents({
       vendor: filters.vendor,
       sort: filters.sort,
+      limit: PAGE_SIZE,
       cursor: nextCursor,
     });
 

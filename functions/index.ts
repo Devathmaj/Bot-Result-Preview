@@ -8,13 +8,15 @@ import { renderNotificationCta } from "../js/components/notification-cta.js";
 import {
   htmlHeaders,
   jsonLdScript,
-  fetchUpstreamJson,
+  fetchUpstreamPage,
+  fetchAllOpportunities,
   serveWithCache,
   SITE_URL,
   sortByCreatedDesc,
   renderDocument,
 } from "./_shared/layout.ts";
-import { countByVendor, normalizeEvent } from "../js/utils.js";
+import { SSR_FULL_FEED_MAX, SSR_CARD_LIMIT, EMBED_EVENT_LIMIT } from "../js/config.js";
+import { countByVendor } from "../js/utils.js";
 
 /* ── Server-rendered homepage ──
  * Serves "/" with real opportunity content in the initial HTML.
@@ -22,8 +24,6 @@ import { countByVendor, normalizeEvent } from "../js/utils.js";
  * Function endpoint that /v1/api/events proxies to, using the same
  * secrets. Page sections are imported from the same component modules
  * the client uses, so server and client emit identical markup. */
-
-const UPSTREAM_LIMIT = 100;
 
 function renderInitialDataScript(payload) {
   const json = JSON.stringify(payload).replace(/</g, "\\u003c");
@@ -44,8 +44,9 @@ function itemListLd(events) {
 }
 
 function renderHomeBody(payload) {
+  const visible = payload.renderCount ?? payload.events.length;
   const grid = payload.ok
-    ? payload.events.map((event) => renderOpportunityCard(event)).join("\n")
+    ? payload.events.slice(0, visible).map((event) => renderOpportunityCard(event)).join("\n")
     : "";
   const vendorCounts = payload.ok ? countByVendor(payload.events) : {};
 
@@ -83,25 +84,36 @@ ${grid}
 
 export async function onRequestGet({ request, env }) {
   return serveWithCache(request, async () => {
-    const results = await Promise.allSettled([
-      fetchUpstreamJson(env, `?limit=${UPSTREAM_LIMIT}`),
-      fetchUpstreamJson(env, "?mode=vendors"),
-    ]);
+    // Vendors facet runs parallel to the first events page; the events
+    // assembly then continues through cursor pages up to the embed cap.
+    const vendorsPromise = fetchUpstreamPage(env, "?mode=vendors").catch(() => null);
 
-    const ok = results[0].status === "fulfilled";
+    const feed = await fetchAllOpportunities(env, { collectCap: EMBED_EVENT_LIMIT });
+    const vendorsResult = await vendorsPromise;
+
+    const ok = feed.pages > 0;
+    const allSorted = sortByCreatedDesc(feed.events);
+    const embedded = allSorted.slice(0, Math.min(allSorted.length, EMBED_EVENT_LIMIT));
+
+    const total = feed.events.length;
+    // Small datasets keep today's full server-rendered feed; larger ones
+    // render only the newest cards here while every opportunity remains
+    // discoverable through detail URLs, sitemap, and ItemList.
+    const renderCount = total <= SSR_FULL_FEED_MAX ? total : Math.min(SSR_CARD_LIMIT, total);
+
     const payload = {
       ok,
-      events: ok ? sortByCreatedDesc(results[0].value.data).map(normalizeEvent) : [],
-      nextCursor: ok ? (results[0].value.next_cursor ?? null) : null,
-      vendors:
-        results[1].status === "fulfilled"
-          ? results[1].value.data
-          : null,
+      events: embedded,
+      nextCursor: feed.complete ? null : feed.boundaryCursor,
+      vendors: vendorsResult ? vendorsResult.data : null,
+      total,
+      complete: feed.complete,
+      renderCount,
     };
 
     const scripts = `
   ${jsonLdScript(WEBSITE_SCHEMA)}
-  ${ok ? itemListLd(payload.events) : ""}`;
+  ${ok ? itemListLd(embedded) : ""}`;
 
     const extraHeadRaw = `
   <!-- Google Verification -->
