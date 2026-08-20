@@ -1836,6 +1836,22 @@ a.crumb:hover {
   font-size: 0.84rem;
 }
 
+.legal-links-row {
+  line-height: 2.1;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.legal-links-row a {
+  color: var(--link);
+}
+
+.legal-links-row a:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .legal-table {
   display: block;
   width: 100%;

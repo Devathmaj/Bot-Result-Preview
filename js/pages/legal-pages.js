@@ -100,6 +100,17 @@ export function renderAboutPage() {
       ],
     },
     {
+      heading: "Notifications Module",
+      items: [
+        "Voucher Bot also runs a notification module that delivers new listings straight to Discord and Telegram. That module is part of the same open-source project, but it is documented separately from this website.",
+        "Its Privacy Policy, Terms of Service, and Disclaimer are available through the links below and on the Set Up Notifications page. This About page describes the website itself; the module documents cover the bot.",
+        {
+          type: "html",
+          html: `<p class="legal-links-row"><strong>Discord:</strong> <a href="/#discord/privacy">Privacy Policy</a> &middot; <a href="/#discord/terms">Terms of Service</a> &middot; <a href="/#discord/disclaimer">Disclaimer</a><br><strong>Telegram:</strong> <a href="/#telegram/privacy">Privacy Policy</a> &middot; <a href="/#telegram/terms">Terms of Service</a> &middot; <a href="/#telegram/disclaimer">Disclaimer</a></p>`,
+        },
+      ],
+    },
+    {
       heading: "Open Source",
       items: [
         "Voucher Tracker is an open-source project. The complete source code is available on GitHub, where you can explore how it works, contribute improvements, report issues, or set up your own instance.",
@@ -135,6 +146,18 @@ export function renderPrivacyPage() {
         "Voucher Tracker does not require user accounts, registration, or any form of personal information to use the website. No personal information is intentionally collected, and no user profiles are created.",
         "As with most websites, standard technical information may be received through normal web requests. This may include your IP address, browser type and version, operating system, the referring page, and the date and time of your visit. This information is used only for hosting, security, and operational purposes.",
         "Voucher Tracker does not currently use analytics, advertising trackers, or non-essential cookies.",
+      ],
+    },
+    {
+      heading: "Notifications Module (Discord & Telegram)",
+      items: [
+        "This Privacy Policy applies to the Voucher Tracker website only. It does not cover the notification module - the Voucher Bot integrations for Discord and Telegram.",
+        "The notification module handles its own data, such as the chat identifiers needed to deliver alerts. That processing is described in the module's own Privacy Policy, which you should read before setting up notifications. The module also has separate Terms of Service and a Disclaimer.",
+        {
+          type: "html",
+          html: `<p class="legal-links-row"><strong>Discord:</strong> <a href="/#discord/privacy">Privacy Policy</a> &middot; <a href="/#discord/terms">Terms of Service</a> &middot; <a href="/#discord/disclaimer">Disclaimer</a><br><strong>Telegram:</strong> <a href="/#telegram/privacy">Privacy Policy</a> &middot; <a href="/#telegram/terms">Terms of Service</a> &middot; <a href="/#telegram/disclaimer">Disclaimer</a></p>`,
+        },
+        { type: "note", text: "If you use the notification module, its Privacy Policy applies alongside - not instead of - the checks described in this document." },
       ],
     },
     {
@@ -181,6 +204,17 @@ export function renderTermsPage() {
       heading: "Acceptance of Terms",
       items: [
         "By accessing or using the Voucher Tracker website, you agree to be bound by these Terms of Use. If you do not agree with any part of these terms, you should not use the website.",
+      ],
+    },
+    {
+      heading: "Notifications Module (Discord & Telegram)",
+      items: [
+        "These Terms of Use apply to the Voucher Tracker website only. Using the notification module - inviting the Voucher Bot to a Discord server or starting the Telegram chat - is a separate feature governed by the module's own Terms of Service.",
+        "The module's Terms, Privacy Policy, and Disclaimer are set out in their own documents. Review them before enabling notifications.",
+        {
+          type: "html",
+          html: `<p class="legal-links-row"><strong>Discord:</strong> <a href="/#discord/terms">Terms of Service</a> &middot; <a href="/#discord/privacy">Privacy Policy</a> &middot; <a href="/#discord/disclaimer">Disclaimer</a><br><strong>Telegram:</strong> <a href="/#telegram/terms">Terms of Service</a> &middot; <a href="/#telegram/privacy">Privacy Policy</a> &middot; <a href="/#telegram/disclaimer">Disclaimer</a></p>`,
+        },
       ],
     },
     {
@@ -270,6 +304,17 @@ export function renderDisclaimerPage() {
         "Voucher Bot collects data by scanning publicly available web pages. Because some pages do not publish a clear date and the bot does not always extract date information reliably, older promotions — including some that may have already expired — can still appear in the listings.",
         "The project uses automated AI classification to identify voucher and promotion content. This process may occasionally produce false positives, where non-voucher content is misidentified as a promotion. Users should treat all listings as potentially outdated or inaccurate.",
         "Users should always verify offers directly with the issuing organization before making purchasing decisions or relying on any promotion listed on this website.",
+      ],
+    },
+    {
+      heading: "Notifications Module (Discord & Telegram)",
+      items: [
+        "The notification module has its own Disclaimer, separate from this website's Disclaimer. Listings delivered through Discord or Telegram follow the same automated-collection limitations described above, and the module's documents add module-specific terms and exclusions.",
+        {
+          type: "html",
+          html: `<p class="legal-links-row"><strong>Discord:</strong> <a href="/#discord/disclaimer">Disclaimer</a> &middot; <a href="/#discord/privacy">Privacy Policy</a> &middot; <a href="/#discord/terms">Terms of Service</a><br><strong>Telegram:</strong> <a href="/#telegram/disclaimer">Disclaimer</a> &middot; <a href="/#telegram/privacy">Privacy Policy</a> &middot; <a href="/#telegram/terms">Terms of Service</a></p>`,
+        },
+        { type: "note", text: "This Disclaimer covers the website. For alerts delivered through the notification module, read that module's Disclaimer as well." },
       ],
     },
     {
