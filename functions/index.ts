@@ -53,7 +53,8 @@ function renderHomeBody(payload) {
 
   return `
   ${renderSiteHeader()}
-  ${renderHero(payload.vendors, vendorCounts)}
+  ${renderHero(payload.vendors)}
+  ${renderNotificationCta()}
   <div class="container">
     <div data-filter-slot>${renderFilterBar(payload.vendors)}</div>
     <section class="feed-section" id="feed" aria-label="Latest certification opportunities" tabindex="-1">
@@ -68,7 +69,6 @@ ${grid}
     </section>
   </div>
   ${renderHowItWorks()}
-  ${renderNotificationCta()}
   ${renderSiteFooter()}
   <noscript>
     <div style="max-width:680px;margin:4rem auto;font-family:sans-serif;line-height:1.6;padding:0 1rem;text-align:center">

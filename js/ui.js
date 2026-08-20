@@ -13,6 +13,7 @@ import {
 import { initTheme } from "./theme.js";
 import { matchesQuery, confidenceTier, countByVendor } from "./utils.js";
 import { PAGE_SIZE } from "./config.js";
+import { showWelcomeModal } from "./welcome-modal.js";
 import { renderSiteHeader, bindThemeToggleBehavior } from "./components/site-header.js";
 import { renderSiteFooter } from "./components/site-footer.js";
 import { renderHero } from "./components/hero.js";
@@ -130,6 +131,7 @@ function homeShellHtml(vendors) {
   return `
     ${renderSiteHeader()}
     ${renderHero(vendors)}
+    ${renderNotificationCta()}
     <div class="container">
       <div data-filter-slot></div>
       <section class="feed-section" id="feed" aria-label="Latest certification opportunities" tabindex="-1">
@@ -142,7 +144,6 @@ function homeShellHtml(vendors) {
       </section>
     </div>
     ${renderHowItWorks()}
-    ${renderNotificationCta()}
     ${renderSiteFooter()}
   `;
 }
@@ -621,6 +622,7 @@ window.addEventListener("hashchange", async () => {
 
 
 function enhanceServerRendered(initial) {
+  showWelcomeModal();
   events = initial.events;
   nextCursor = initial.nextCursor ?? null;
   currentPage = 1;
@@ -673,6 +675,7 @@ async function init() {
   readFiltersFromUrl(location.search);
   buildHomeShell(null);
   paintSkeletons();
+  showWelcomeModal();
   await loadFeed(true);
   populateVendorData();
 }

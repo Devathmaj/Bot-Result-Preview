@@ -15,15 +15,11 @@ function getStoredTheme() {
   return null;
 }
 
+/* Theme precedence: explicit visitor choice (localStorage) wins; the
+ * site otherwise always opens in light mode — OS preference is
+ * intentionally not consulted. */
 function getPreferredTheme() {
-  const stored = getStoredTheme();
-  if (stored) return stored;
-  try {
-    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
-  } catch (e) {}
-  return "light";
+  return getStoredTheme() || "light";
 }
 
 export function initTheme() {
