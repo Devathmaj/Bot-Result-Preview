@@ -10,6 +10,7 @@ import {
   jsonLdScript,
   fetchUpstreamPage,
   fetchAllOpportunities,
+  noteWalkOutcome,
   serveWithCache,
   SITE_URL,
   sortByCreatedDesc,
@@ -90,6 +91,7 @@ export async function onRequestGet({ request, env }) {
 
     const feed = await fetchAllOpportunities(env, { collectCap: EMBED_EVENT_LIMIT });
     const vendorsResult = await vendorsPromise;
+    if (feed.complete) noteWalkOutcome([feed.events], true).catch(() => {});
 
     const ok = feed.pages > 0;
     const allSorted = sortByCreatedDesc(feed.events);

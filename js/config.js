@@ -30,3 +30,9 @@ export const EMBED_EVENT_LIMIT = 250;
 /** Same-vendor links collected on an opportunity detail page. */
 export const DETAIL_RELATED_TARGET = 3;
 
+/** Max age of the high-water-mark id index used to reject provably
+ * absent ids on detail routes. Rejections are correctness-safe at any
+ * age (see layout.ts invariant); the TTL merely bounds how long we
+ * trust it if the monotonic-id assumption is ever violated manually. */
+export const ID_INDEX_TTL_MS = 10 * 60 * 1000;
+

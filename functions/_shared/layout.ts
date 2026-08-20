@@ -161,7 +161,7 @@ export function sortByCreatedDesc(list: any[]): any[] {
  * PAGE_SIZE are assembled through cursor pagination. All limits come
  * from js/config.js — no route may hardcode its own. */
 
-import { PAGE_SIZE, MAX_UPSTREAM_PAGES, DETAIL_RELATED_TARGET } from "../../js/config.js";
+import { PAGE_SIZE, MAX_UPSTREAM_PAGES, DETAIL_RELATED_TARGET, ID_INDEX_TTL_MS } from "../../js/config.js";
 import { normalizeEvent } from "../../js/utils.js";
 
 export async function fetchUpstreamPage(env: any, queryString: string): Promise<any> {
@@ -203,13 +203,64 @@ export async function fetchAllOpportunities(
   return { events, complete: cursor === null, pages, boundaryCursor: cursor };
 }
 
-/* ── Why there is no pre-upstream existence guard ──
- * A cached id-set could reject fabricated ids cheaply, but any cached
- * membership view lags upstream: brand-new listings would be falsely
- * rejected until that cache expired, violating the hard rule that valid
- * ids must never 404. With no upstream invalidation feed available,
- * only structural validation happens in the route; cost control comes
- * from early-exit scanning instead. */
+/* ── High-water-mark (HWM) ID guard ──
+ * Safety invariant: upstream ids are allocated monotonically and the
+ * list endpoint enumerates newest-first, so an EXHAUSTIVE cursor walk
+ * that reached high-water mark H has seen every row with id ≤ H. Any
+ * absent id ≤ H never existed and can be rejected forever; any id > H
+ * may have been created after the scan and MUST fall through to a real
+ * lookup — this is what makes false 404s for newly created listings
+ * structurally impossible. Deletions rejecting as 404 is the desired
+ * behavior anyway. The TTL only bounds the exotic case of someone
+ * manually inserting an id below the sequence. */
+
+const ID_INDEX_KEY = "https://voucherbot.internal/__opportunity-hwm-index";
+
+interface HwmIndex {
+  hwm: number;
+  ids: number[];
+  exhaustive: boolean;
+  savedAt: number;
+}
+
+async function readHwmIndex(): Promise<HwmIndex | null> {
+  try {
+    const cached = await caches.default.match(new Request(ID_INDEX_KEY));
+    if (!cached) return null;
+    const body = await cached.json<HwmIndex>();
+    if (!body || typeof body.hwm !== "number" || !Array.isArray(body.ids)) return null;
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+/** Record the outcome of a walk. Only naturally-exhausted walks carry
+ * absence proof for their covered range; partial (early-exit or
+ * ceiling-stopped) walks are discarded — they prove nothing about the
+ * rows they never read. Never regresses below an existing exhaustive
+ * high-water mark. */
+export async function noteWalkOutcome(pagesRows: any[][], exhaustive: boolean): Promise<void> {
+  if (!exhaustive) return;
+  try {
+    const flat = pagesRows.flat();
+    if (!flat.length) return;
+    const ids = flat.map((e) => e.id);
+    const hwm = Math.max(...ids);
+
+    // Never regress below an existing exhaustive high-water mark.
+    const existing = await readHwmIndex();
+    if (existing && existing.exhaustive && existing.hwm >= hwm) return;
+
+    const res = new Response(
+      JSON.stringify({ hwm, ids, exhaustive: true, savedAt: Date.now() }),
+      { headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${ID_INDEX_TTL_MS / 1000}` } }
+    );
+    await caches.default.put(new Request(ID_INDEX_KEY), res);
+  } catch {
+    // Index maintenance must never break the route that fed it.
+  }
+}
 
 /** Locate one opportunity (+ up to DETAIL_RELATED_TARGET same-vendor
  * peers) with early exit. Isolates today's list-scan lookup behind a
@@ -219,6 +270,19 @@ export async function findOpportunityById(
   env: any,
   id: number
 ): Promise<{ status: "found" | "not-found" | "unavailable"; item?: any; related?: any[] }> {
+  // Guard fast path — safe by construction: reject only ids inside the
+  // proven-covered range of a fresh, exhaustive scan.
+  const index = await readHwmIndex();
+  if (
+    index &&
+    index.exhaustive &&
+    Date.now() - index.savedAt <= ID_INDEX_TTL_MS &&
+    id <= index.hwm &&
+    !index.ids.includes(id)
+  ) {
+    return { status: "not-found" };
+  }
+
   // Slow path: walk pages until the id appears (early exit), buffering
   // scanned rows so same-vendor related links stay high-quality.
   const scannedPages: any[][] = [];
@@ -238,6 +302,13 @@ export async function findOpportunityById(
       cursor = body.next_cursor ?? null;
       pages++;
     } while (cursor && pages < MAX_UPSTREAM_PAGES && !found);
+
+    // A naturally-exhausted walk proves absence for everything it
+    // covered; publish that proof. Early exits prove nothing about
+    // unread rows, so partial walks update nothing.
+    if (!cursor && pages < MAX_UPSTREAM_PAGES) {
+      noteWalkOutcome(scannedPages, true).catch(() => {});
+    }
 
     if (!found) return { status: "not-found" };
 
