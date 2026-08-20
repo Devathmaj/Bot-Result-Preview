@@ -22,15 +22,17 @@ export function renderHero(vendors, counts) {
           sources, and listed here as they are discovered.
         </p>
         <form class="hero-search" role="search" data-search-form>
-          <span class="hero-search-icon" aria-hidden="true">${ICONS.search}</span>
-          <input
-            type="text"
-            class="search-input"
-            name="search"
-            placeholder="Search titles, summaries, vendors&hellip;"
-            aria-label="Search listings"
-            autocomplete="off"
-          />
+          <div class="search-field">
+            <span class="hero-search-icon" aria-hidden="true">${ICONS.search}</span>
+            <input
+              type="text"
+              class="search-input"
+              name="search"
+              placeholder="Search titles, summaries, vendors&hellip;"
+              aria-label="Search listings"
+              autocomplete="off"
+            />
+          </div>
           <button type="submit" class="btn btn-primary hero-search-btn">Search</button>
         </form>
         ${chips ? `<div class="vendor-chips" aria-label="Browse by vendor">${chips}</div>` : ""}

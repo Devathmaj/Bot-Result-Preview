@@ -1,4 +1,4 @@
-/* ═══ Design tokens — established palette, preserved ═══ */
+
 
 :root {
   --bg-body: #F6EBDD;
@@ -163,6 +163,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -172,6 +173,7 @@ body {
   color: var(--text-primary);
   background: var(--bg-body);
   -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
 }
 
 img { max-width: 100%; }
@@ -228,6 +230,8 @@ img { max-width: 100%; }
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  row-gap: 0.35rem;
+  flex-wrap: wrap;
   padding-top: 0.9rem;
   padding-bottom: 0.9rem;
   max-width: 1140px;
@@ -373,6 +377,13 @@ img { max-width: 100%; }
   color: var(--text-muted);
   pointer-events: none;
   display: flex;
+}
+
+.search-field {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
 }
 
 .search-input {
@@ -1819,7 +1830,9 @@ a.crumb:hover {
 }
 
 .legal-table {
+  display: block;
   width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 0 0 0.9rem;
 }
@@ -1915,6 +1928,28 @@ a.crumb:hover {
   .detail-cta-row .source-btn-lg,
   .detail-cta-row .btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-name {
+    font-size: 1.25rem;
+  }
+  .site-nav {
+    gap: 0.6rem;
+  }
+  .notify-cta--primary {
+    padding: 1.1rem 1.15rem;
+  }
+  .notify-cta--primary .notify-cta-title {
+    font-size: 1.45rem;
+  }
+  .notify-cta-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .page-head-actions .btn {
+    flex: 1 1 auto;
   }
 }
 
