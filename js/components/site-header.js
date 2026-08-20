@@ -17,7 +17,7 @@ export function renderSiteHeader() {
           <span class="brand-tagline">Certification discounts &amp; opportunities</span>
         </div>
         <nav class="site-nav" aria-label="Primary">
-          <a href="/#how-it-works" class="nav-link">How it works</a>
+          <button type="button" class="nav-link" data-how-it-works-open>How it works</button>
           <a href="/#notifications" class="nav-link">Notifications</a>
           <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme">${themeIcon}</button>
         </nav>

@@ -13,7 +13,6 @@ import {
 import { initTheme } from "./theme.js";
 import { matchesQuery, confidenceTier, countByVendor } from "./utils.js";
 import { PAGE_SIZE } from "./config.js";
-import { showWelcomeModal } from "./welcome-modal.js";
 import { renderSiteHeader, bindThemeToggleBehavior } from "./components/site-header.js";
 import { renderSiteFooter } from "./components/site-footer.js";
 import { renderHero } from "./components/hero.js";
@@ -21,7 +20,7 @@ import { renderFilterBar } from "./components/filter-bar.js";
 import { renderOpportunityCard } from "./components/opportunity-card.js";
 import { renderPaginationHtml, paginationState } from "./components/pagination.js";
 import { renderSkeletonGrid, renderEmptyState, renderErrorState, renderResultsCount } from "./components/feed-state.js";
-import { renderHowItWorks } from "./components/how-it-works.js";
+import { bindHowItWorksModal, renderHowItWorksModal } from "./components/how-it-works.js";
 import { renderNotificationCta } from "./components/notification-cta.js";
 import { renderNotificationsPage } from "./pages/notifications-page.js";
 import {
@@ -143,7 +142,7 @@ function homeShellHtml(vendors) {
         <nav class="pagination" id="pagination" aria-label="Listings pages"></nav>
       </section>
     </div>
-    ${renderHowItWorks()}
+    ${renderHowItWorksModal()}
     ${renderSiteFooter()}
   `;
 }
@@ -159,6 +158,7 @@ function buildHomeShell(vendors) {
 
 function bindHomeShell() {
   bindThemeToggleBehavior();
+  bindHowItWorksModal();
   bindSearchForm();
   bindFilterBar();
   document.getElementById("pagination").addEventListener("click", onPaginationClick);
@@ -551,6 +551,7 @@ function renderLegalRoute(hash) {
 
   app.appendChild(htmlToEl(renderSiteFooter()));
   bindThemeToggleBehavior();
+  bindHowItWorksModal();
   return true;
 }
 
@@ -612,17 +613,12 @@ window.addEventListener("hashchange", async () => {
     renderLegalRoute(hash);
     return;
   }
-  if (hash === "how-it-works") {
-    await ensureHomeRendered();
-    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
-  }
 });
 
 /* ── Server-rendered enhancement ── */
 
 
 function enhanceServerRendered(initial) {
-  showWelcomeModal();
   events = initial.events;
   nextCursor = initial.nextCursor ?? null;
   currentPage = 1;
@@ -675,7 +671,6 @@ async function init() {
   readFiltersFromUrl(location.search);
   buildHomeShell(null);
   paintSkeletons();
-  showWelcomeModal();
   await loadFeed(true);
   populateVendorData();
 }

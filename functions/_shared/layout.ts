@@ -102,6 +102,7 @@ export function renderDocument(opts: DocumentOptions) {
   <main id="app" tabindex="-1">
   ${body}
   </main>
+  ${renderHowItWorksModal()}
   <script type="module" src="${opts.entryScript || "/js/detail.js"}"></script>
 </body>
 </html>`;
@@ -163,6 +164,7 @@ export function sortByCreatedDesc(list: any[]): any[] {
 
 import { PAGE_SIZE, MAX_UPSTREAM_PAGES, DETAIL_RELATED_TARGET, ID_INDEX_TTL_MS } from "../../js/config.js";
 import { normalizeEvent } from "../../js/utils.js";
+import { renderHowItWorksModal } from "../../js/components/how-it-works.js";
 
 export async function fetchUpstreamPage(env: any, queryString: string): Promise<any> {
   const body = await fetchUpstreamJson(env, queryString);

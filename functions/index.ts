@@ -3,7 +3,6 @@ import { renderSiteFooter } from "../js/components/site-footer.js";
 import { renderHero } from "../js/components/hero.js";
 import { renderFilterBar } from "../js/components/filter-bar.js";
 import { renderOpportunityCard } from "../js/components/opportunity-card.js";
-import { renderHowItWorks } from "../js/components/how-it-works.js";
 import { renderNotificationCta } from "../js/components/notification-cta.js";
 import {
   htmlHeaders,
@@ -68,7 +67,6 @@ ${grid}
       <nav class="pagination" id="pagination" aria-label="Listings pages"></nav>
     </section>
   </div>
-  ${renderHowItWorks()}
   ${renderSiteFooter()}
   <noscript>
     <div style="max-width:680px;margin:4rem auto;font-family:sans-serif;line-height:1.6;padding:0 1rem;text-align:center">

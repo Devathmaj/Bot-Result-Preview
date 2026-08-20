@@ -1,6 +1,5 @@
 import { renderSiteHeader } from "../../js/components/site-header.js";
 import { renderSiteFooter } from "../../js/components/site-footer.js";
-import { renderNotificationCta } from "../../js/components/notification-cta.js";
 import { renderOpportunityDetail, renderRelatedSection } from "../../js/components/opportunity-detail.js";
 import { renderMessagePage } from "../../js/components/page-shells.js";
 import { normalizeEvent } from "../../js/utils.js";
@@ -77,8 +76,7 @@ export async function onRequestGet({ request, env, params }) {
       renderSiteHeader() +
       renderOpportunityDetail(item) +
       renderRelatedSection(related, item.vendor || "") +
-      renderNotificationCta() +
-      renderSiteFooter();
+            renderSiteFooter();
 
     const html = renderDocument({
       path: `/opportunities/${item.id}`,

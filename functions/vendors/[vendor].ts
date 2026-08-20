@@ -1,7 +1,5 @@
 import { renderSiteHeader } from "../../js/components/site-header.js";
 import { renderSiteFooter } from "../../js/components/site-footer.js";
-import { renderHowItWorks } from "../../js/components/how-it-works.js";
-import { renderNotificationCta } from "../../js/components/notification-cta.js";
 import { renderVendorPage } from "../../js/components/vendor-page.js";
 import { renderMessagePage } from "../../js/components/page-shells.js";
 import { vendorLabel, vendorSlug } from "../../js/utils.js";
@@ -77,9 +75,7 @@ export async function onRequestGet({ request, env, params }) {
     const body =
       renderSiteHeader() +
       renderVendorPage(vendor, events, events.length) +
-      renderHowItWorks() +
-      renderNotificationCta() +
-      renderSiteFooter();
+              renderSiteFooter();
 
     const html = renderDocument({
       path: vendorPath,
