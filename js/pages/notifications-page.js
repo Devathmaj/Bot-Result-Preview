@@ -63,6 +63,7 @@ export function renderNotificationsPage() {
       `Invite the bot to any server and hit the button below.`,
       `Run <code class="cmd-chip">/notify dm</code> to have alerts sent to your DMs.`,
       `Or run <code class="cmd-chip">/notify channel</code> to set up the channel where notifications are posted.`,
+      `Run <code class="cmd-chip">/about</code> to see what the bot is about.`,
       `Run <code class="cmd-chip">/help</code> for the full list of commands.`,
     ],
     href: DISCORD_INVITE_URL,
@@ -88,7 +89,8 @@ export function renderNotificationsPage() {
     steps: [
       `Open the bot with the button below.`,
       `Send <code class="cmd-chip">/start</code> in the chat to subscribe.`,
-      `For groups: just add the bot to the group — that's it.`,
+      `For groups: just add the bot to the group - that's it.`,
+      `Send <code class="cmd-chip">/about</code> to see what the bot is about.`,
       `Run <code class="cmd-chip">/help</code> for the full list of commands.`,
     ],
     href: TELEGRAM_BOT_URL,
