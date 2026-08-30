@@ -23,6 +23,7 @@ import { renderSkeletonGrid, renderEmptyState, renderErrorState, renderResultsCo
 import { bindHowItWorksModal, renderHowItWorksModal } from "./components/how-it-works.js";
 import { renderNotificationCta } from "./components/notification-cta.js";
 import { renderNotificationsPage } from "./pages/notifications-page.js";
+import { renderDonatePage } from "./pages/donate-page.js";
 import {
   renderAboutPage,
   renderPrivacyPage,
@@ -517,6 +518,7 @@ function onPaginationClick(e) {
 
 const PAGE_ROUTES = {
   about: renderAboutPage,
+  donate: renderDonatePage,
   privacy: renderPrivacyPage,
   terms: renderTermsPage,
   disclaimer: renderDisclaimerPage,

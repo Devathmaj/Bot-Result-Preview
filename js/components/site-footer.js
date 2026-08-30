@@ -9,6 +9,8 @@
           <span class="footer-sep" aria-hidden="true">&middot;</span>
           <a href="/#notifications">Notifications</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
+          <a href="/#donate">Donate</a>
+          <span class="footer-sep" aria-hidden="true">&middot;</span>
           <a href="/#about">About</a>
           <span class="footer-sep" aria-hidden="true">&middot;</span>
           <a href="/#privacy">Privacy Policy</a>

@@ -19,6 +19,7 @@ export function renderSiteHeader() {
         <nav class="site-nav" aria-label="Primary">
           <button type="button" class="nav-link" data-how-it-works-open>How it works</button>
           <a href="/#notifications" class="nav-link">Notifications</a>
+          <a href="/#donate" class="nav-link">Donate</a>
           <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme">${themeIcon}</button>
         </nav>
       </div>
