@@ -45,6 +45,7 @@ export function renderOpportunityDetail(item) {
           ${factRow("Certifications", certs.length ? certs.map((c) => `<span class="tag">${escapeHtml(c)}</span>`).join(" ") : "")}
           ${factRow("Regions", regions.length ? regions.map((r) => `<span class="tag">${escapeHtml(r)}</span>`).join(" ") : "")}
           ${factRow("Promotion", ai.promotion_name ? escapeHtml(ai.promotion_name) : "")}
+          ${factRow("End date", ai.end_date ? escapeHtml(formatFullDate(ai.end_date)) : "Not specified")}
           ${factRow("Listed", item.created_at ? escapeHtml(formatFullDate(item.created_at)) : "")}
           ${factRow("Source published", item.published_at ? escapeHtml(formatFullDate(item.published_at)) : "")}
           ${factRow("Reported by", item.author ? escapeHtml(item.author) : "")}

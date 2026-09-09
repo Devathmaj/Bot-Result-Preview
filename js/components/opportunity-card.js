@@ -3,6 +3,7 @@ import {
   vendorLabel,
   vendorSlug,
   formatShortDate,
+  formatFullDate,
   hostOf,
   truncate,
   confidenceTier,
@@ -58,6 +59,8 @@ export function renderOpportunityCard(item) {
   const author = item.author ? truncate(item.author, 48) : "";
   const summary = generateCardSummary(item);
   const discount = item.ai_result?.discount;
+  const endDate = item.ai_result?.end_date;
+  const endDateFormatted = endDate ? formatShortDate(endDate) : null;
 
   return `
     <article class="opportunity-card">
@@ -74,6 +77,7 @@ export function renderOpportunityCard(item) {
       <div class="card-meta">
         ${host ? `<span class="meta-host">${escapeHtml(host)}</span><span class="meta-sep" aria-hidden="true">&middot;</span>` : ""}
         ${listed ? `<span>Listed ${listed}</span>` : ""}
+        ${endDateFormatted ? `<span class="meta-sep" aria-hidden="true">&middot;</span><span>Ends ${escapeHtml(endDateFormatted)}</span>` : ""}
         ${author ? `<span class="meta-author" title="${escapeHtml(item.author)}">via ${escapeHtml(author)}</span>` : ""}
       </div>
       <div class="card-cta">
