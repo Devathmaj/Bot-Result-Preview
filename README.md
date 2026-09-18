@@ -4,7 +4,7 @@ The web frontend for [Voucher Bot](https://github.com/Devathmaj/VoucherBot) — 
 project that automatically discovers certification discounts, free exam opportunities, and
 training promotions from vendor sites, training providers, and community sources.
 
-> **Live site:** [https://voucherbot-preview.pages.dev/](https://voucherbot-preview.pages.dev/)
+> **Live site:** [https://voucherbot.pages.dev/](https://voucherbot.pages.dev/)
 
 ## What this site does
 
@@ -17,7 +17,7 @@ training promotions from vendor sites, training providers, and community sources
   discovery-window, and AI-confidence filters run client-side over the loaded dataset, so they
   respond instantly. Filters are shareable through URL parameters (`/?q=aws&vendor=microsoft`).
 - **Notifications** — new listings can be pushed to Discord or Telegram the moment they are
-  discovered. See the [Set Up Notifications](https://voucherbot-preview.pages.dev/#notifications)
+  discovered. See the [Set Up Notifications](https://voucherbot.pages.dev/#notifications)
   page.
 - **Light/dark theme**, responsive layout, and an accessible modal-based "How it works" guide —
   with no frameworks and no build step for the frontend code.
@@ -75,7 +75,7 @@ node scripts/mock-sef.mjs 100    # local mock of the upstream for scale testing
 ## Notifications
 
 Voucher Bot can push new listings to **Discord** or **Telegram** as they are discovered.
-Setup instructions live on the [Notifications](https://voucherbot-preview.pages.dev/#notifications)
+Setup instructions live on the [Notifications](https://voucherbot.pages.dev/#notifications)
 page. The notification module has its own Privacy Policy, Terms of Service, and Disclaimer,
 linked from every site legal page and from the setup page.
 
@@ -84,4 +84,4 @@ linked from every site legal page and from the setup page.
 Voucher Tracker is an independent, open-source aggregator. Listings are identified through
 automated analysis, may be incomplete or outdated, and are not endorsements. Always confirm
 details with the issuing organization. See the full
-[Disclaimer](https://voucherbot-preview.pages.dev/#disclaimer) on the site.
+[Disclaimer](https://voucherbot.pages.dev/#disclaimer) on the site.

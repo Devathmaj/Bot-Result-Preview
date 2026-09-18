@@ -3,7 +3,7 @@
  * document shell markup, upstream fetching, caching, and JSON-LD builders
  * used by the individual route handlers. */
 
-export const SITE_URL = "https://voucherbot-preview.pages.dev";
+export const SITE_URL = "https://voucherbot.pages.dev";
 
 export function escapeHtml(str) {
   if (typeof str !== "string") return str ?? "";

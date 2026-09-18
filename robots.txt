@@ -1,8 +1,8 @@
 # VoucherBot — robots.txt
-# https://voucherbot-preview.pages.dev/
+# https://voucherbot.pages.dev/
 
 User-agent: *
 Allow: /
 Crawl-delay: 10
 
-Sitemap: https://voucherbot-preview.pages.dev/sitemap.xml
+Sitemap: https://voucherbot.pages.dev/sitemap.xml
